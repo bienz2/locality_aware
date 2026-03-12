@@ -39,24 +39,20 @@ int alltoall_crs_rma(const int send_nnz,
     MPI_Type_size(recvtype, &recv_bytes);
     int bytes = num_procs * recvcount * recv_bytes;
 
-    if (comm->win_bytes != bytes || comm->win_type_bytes != 1)
-    {
-        MPIL_Comm_win_free(comm);
-    }
-
-    if (comm->win == MPI_WIN_NULL)
-    {
-        MPIL_Comm_win_init(comm, bytes, 1);
-    }
+    MPI_Win win;
+    char* win_array;
+    MPI_Alloc_mem(bytes, MPI_INFO_NULL, &(win_array));
+    MPI_Win_create(win_array, bytes, 1, MPI_INFO_NULL, comm->global_comm,
+            &(win));
 
     // RMA puts to find sizes recvd from each process
-    memset((comm->win_array), 0, bytes);
+    memset(win_array, 0, bytes);
 
     send_bytes *= sendcount;
     recv_bytes *= recvcount;
 
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Win_fence(MPI_MODE_NOSTORE | MPI_MODE_NOPRECEDE, comm->win);
+    MPI_Win_fence(MPI_MODE_NOSTORE | MPI_MODE_NOPRECEDE, win);
     for (int i = 0; i < send_nnz; i++)
     {
         MPI_Put(&(send_buffer[i * send_bytes]),
@@ -66,10 +62,10 @@ int alltoall_crs_rma(const int send_nnz,
                 rank * recv_bytes,
                 recv_bytes,
                 MPI_CHAR,
-                comm->win);
+                win);
     }
     MPI_Barrier(MPI_COMM_WORLD);
-    MPI_Win_fence(MPI_MODE_NOPUT | MPI_MODE_NOSUCCEED, comm->win);
+    MPI_Win_fence(MPI_MODE_NOPUT | MPI_MODE_NOSUCCEED, win);
 
     std::vector<int> src;
     std::vector<char> recv_buffer;
@@ -79,7 +75,7 @@ int alltoall_crs_rma(const int send_nnz,
         flag = 0;
         for (int j = 0; j < recv_bytes; j++)
         {
-            if (comm->win_array[i * recv_bytes + j])
+            if (win_array[i * recv_bytes + j])
             {
                 flag = 1;
                 break;
@@ -89,8 +85,8 @@ int alltoall_crs_rma(const int send_nnz,
         {
             src.push_back(i);
             recv_buffer.insert(recv_buffer.end(),
-                               &(comm->win_array[i * recv_bytes]),
-                               &(comm->win_array[i * recv_bytes]) + recv_bytes);
+                               &(win_array[i * recv_bytes]),
+                               &(win_array[i * recv_bytes]) + recv_bytes);
         }
     }
 
@@ -100,6 +96,9 @@ int alltoall_crs_rma(const int send_nnz,
 
     memcpy((*src_ptr), src.data(), src.size() * sizeof(int));
     memcpy((*recvvals_ptr), recv_buffer.data(), recv_buffer.size());
+
+    MPI_Win_free(&win);
+    MPI_Free_mem(win_array);
 
     return MPI_SUCCESS;
 }
@@ -157,10 +156,10 @@ int alltoall_crs_personalized(const int send_nnz,
     MPIL_Alloc((void**)&src, *recv_nnz * sizeof(int));
     MPIL_Alloc((void**)&recvvals, *recv_nnz * recv_bytes);
 
-    if (comm->n_requests < send_nnz)
-    {
-        MPIL_Comm_req_resize(comm, send_nnz);
-    }
+
+    std::vector<MPI_Request> requests;
+    if (send_nnz)
+        requests.resize(send_nnz);
 
     for (int i = 0; i < send_nnz; i++)
     {
@@ -171,7 +170,7 @@ int alltoall_crs_personalized(const int send_nnz,
                   proc,
                   tag,
                   comm->global_comm,
-                  &(comm->requests[i]));
+                  &(requests[i]));
     }
 
     ctr = 0;
@@ -193,7 +192,7 @@ int alltoall_crs_personalized(const int send_nnz,
 
     if (send_nnz)
     {
-        MPI_Waitall(send_nnz, comm->requests, MPI_STATUSES_IGNORE);
+        MPI_Waitall(send_nnz, requests.data(), MPI_STATUSES_IGNORE);
     }
 
     *src_ptr      = src;
@@ -235,10 +234,9 @@ int alltoall_crs_nonblocking(const int send_nnz,
     std::vector<int> src;
     std::vector<char> recv_buffer;
 
-    if (comm->n_requests < send_nnz)
-    {
-        MPIL_Comm_req_resize(comm, send_nnz);
-    }
+    std::vector<MPI_Request> requests;
+    if (send_nnz)
+        requests.resize(send_nnz);
 
     for (int i = 0; i < send_nnz; i++)
     {
@@ -249,7 +247,7 @@ int alltoall_crs_nonblocking(const int send_nnz,
                    proc,
                    tag,
                    comm->global_comm,
-                   &(comm->requests[i]));
+                   &(requests[i]));
     }
 
     ibar = 0;
@@ -281,7 +279,7 @@ int alltoall_crs_nonblocking(const int send_nnz,
         }
         else
         {
-            MPI_Testall(send_nnz, comm->requests, &flag, MPI_STATUSES_IGNORE);
+            MPI_Testall(send_nnz, requests.data(), &flag, MPI_STATUSES_IGNORE);
             if (flag)
             {
                 ibar = 1;
@@ -386,11 +384,8 @@ void local_redistribute(int node_recv_size,
     MPI_Allreduce(
         MPI_IN_PLACE, msg_counts.data(), PPN, MPI_INT, MPI_SUM, comm->local_comm);
     int recv_count = msg_counts[local_rank];
-    if (PPN > comm->n_requests)
-    {
-        MPIL_Comm_req_resize(comm, PPN);
-    }
 
+    std::vector<MPI_Request> requests(PPN);
     // Send a message to every process that I will need data from
     // Tell them which global indices I need from them
     int n_sends = 0;
@@ -407,7 +402,7 @@ void local_redistribute(int node_recv_size,
                   i,
                   tag,
                   comm->local_comm,
-                  &(comm->requests[n_sends++]));
+                  &(requests[n_sends++]));
     }
 
     std::vector<char> local_recv_buffer;
@@ -441,7 +436,7 @@ void local_redistribute(int node_recv_size,
     }
     if (n_sends)
     {
-        MPI_Waitall(n_sends, comm->requests, MPI_STATUSES_IGNORE);
+        MPI_Waitall(n_sends, requests.data(), MPI_STATUSES_IGNORE);
     }
 
     // Last Step : Step through recvbuf to find proc of origin, size, and indices
@@ -510,10 +505,9 @@ int alltoall_crs_personalized_loc(const int send_nnz,
     send_bytes *= sendcount;
     recv_bytes *= recvcount;
 
-    if (comm->n_requests < send_nnz)
-    {
-        MPIL_Comm_req_resize(comm, send_nnz);
-    }
+    std::vector<MPI_Request> requests;
+    if (send_nnz)
+        requests.resize(send_nnz);
 
     MPI_Status recv_status;
     int proc, ctr, start, end;
@@ -605,7 +599,7 @@ int alltoall_crs_personalized_loc(const int send_nnz,
                       i,
                       tag,
                       comm->group_comm,
-                      &(comm->requests[n_sends++]));
+                      &(requests[n_sends++]));
         }
     }
 
@@ -648,7 +642,7 @@ int alltoall_crs_personalized_loc(const int send_nnz,
 
     if (n_sends)
     {
-        MPI_Waitall(n_sends, comm->requests, MPI_STATUSES_IGNORE);
+        MPI_Waitall(n_sends, requests.data(), MPI_STATUSES_IGNORE);
     }
 
     local_redistribute(node_recv_size,
@@ -696,10 +690,9 @@ int alltoall_crs_nonblocking_loc(const int send_nnz,
     send_bytes *= sendcount;
     recv_bytes *= recvcount;
 
-    if (comm->n_requests < send_nnz)
-    {
-        MPIL_Comm_req_resize(comm, send_nnz);
-    }
+    std::vector<MPI_Request> requests;
+    if (send_nnz)
+        requests.resize(send_nnz);
 
     MPI_Status recv_status;
     MPI_Request bar_req;
@@ -785,7 +778,7 @@ int alltoall_crs_nonblocking_loc(const int send_nnz,
                        i,
                        tag,
                        comm->group_comm,
-                       &(comm->requests[n_sends++]));
+                       &(requests[n_sends++]));
         }
     }
 
@@ -837,7 +830,7 @@ int alltoall_crs_nonblocking_loc(const int send_nnz,
         {
             // Test if all of my synchronous sends have completed.
             // They only complete once actually received.
-            MPI_Testall(n_sends, comm->requests, &flag, MPI_STATUSES_IGNORE);
+            MPI_Testall(n_sends, requests.data(), &flag, MPI_STATUSES_IGNORE);
             if (flag)
             {
                 ibar = 1;

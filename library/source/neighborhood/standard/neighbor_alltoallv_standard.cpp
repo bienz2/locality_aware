@@ -2,6 +2,7 @@
 #include "locality_aware.h"
 #include "neighborhood/neighbor.h"
 #include "string.h"
+#include <vector>
 
 // Standard, non-persistent neighbor collective
 int neighbor_alltoallv_standard(const void* sendbuf,
@@ -23,10 +24,10 @@ int neighbor_alltoallv_standard(const void* sendbuf,
         return MPI_SUCCESS;
     }
 
-    if (comm->n_requests < topo->indegree + topo->outdegree)
-    {
-        MPIL_Comm_req_resize(comm, topo->indegree + topo->outdegree);
-    }
+    int n_msgs = topo->indegree + topo->outdegree;
+    std::vector<MPI_Request> requests;
+    if (n_msgs)
+        requests.resize(n_msgs);
 
     const char* send_buffer = NULL;
     char* recv_buffer       = NULL;
@@ -55,7 +56,7 @@ int neighbor_alltoallv_standard(const void* sendbuf,
                       topo->sources[i],
                       tag,
                       comm->global_comm,
-                      &(comm->requests[count++]));
+                      &(requests[count++]));
         }
     }
 
@@ -69,11 +70,11 @@ int neighbor_alltoallv_standard(const void* sendbuf,
                       topo->destinations[i],
                       tag,
                       comm->global_comm,
-                      &(comm->requests[count++]));
+                      &(requests[count++]));
         }
     }
 
-    MPI_Waitall(count, comm->requests, comm->statuses);
+    MPI_Waitall(count, requests.data(), MPI_STATUSES_IGNORE);
 
     return MPI_SUCCESS;
 }

@@ -61,6 +61,9 @@ int MPIL_Allreduce(const void* sendbuf,
         case ALLREDUCE_DISSEMINATION_RADIX:
             method = allreduce_dissemination_radix;
             break;
+        case ALLREDUCE_RMA:
+            method = allreduce_rma;
+            break;
         case ALLREDUCE_PMPI:
             method = allreduce_pmpi;
             break;

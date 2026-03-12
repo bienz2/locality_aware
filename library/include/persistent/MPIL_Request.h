@@ -44,6 +44,7 @@ struct _MPIL_Request
     /** @brief size of sendtype **/
     int send_size;
     /** @brief size of recvtype **/
+    int recv_size;
 
     // Pointers to MPI_Requests for aggregated communication
     /** @brief Fully local communication **/
@@ -53,8 +54,6 @@ struct _MPIL_Request
     /** @brief Final local disaggrgation **/
     MPIL_Request* local_R_request;
 
-    /** @brief Number of bytes per receive object, locality-aware only **/
-    int recv_size;
     /** @brief Block size for strided/blocked communication **/
     int block_size;
 
@@ -77,6 +76,18 @@ struct _MPIL_Request
     MPI_Op op;
     /** @brief num_ops int number of local operations **/
     int num_ops;
+
+    // Variables for persistent operations that use RMA (e.g. RMA collectives)
+    /**@brief MPI_window if using sync**/
+    MPI_Win win;
+    /**@brief Buffer for MPI_window**/
+    char* win_array;
+    /**@brief Size of win_array in bytes**/
+    int win_bytes;
+    /**@brief Size of the datatype in win_array in bytes**/
+    int win_type_bytes;
+    /** @brief number of puts **/
+    int n_puts;
     
 
 #ifdef GPU
@@ -105,6 +116,7 @@ void init_request(MPIL_Request** request_ptr);
         @param [out] request_ptr pointer to start of allocated memory
 **/
 void allocate_requests(int n_requests, MPIL_Request* request);
+
 
 #ifdef __cplusplus
 }

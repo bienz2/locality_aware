@@ -3,6 +3,7 @@
 
 #include <mpi.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "communicator/MPIL_Comm.hpp"
 
@@ -85,6 +86,15 @@ int alltoall_pairwise(const void* sendbuf,
  * @return returns value of the nonblocking_helper call.
  */
 int alltoall_nonblocking(const void* sendbuf,
+                         const int sendcount,
+                         MPI_Datatype sendtype,
+                         void* recvbuf,
+                         const int recvcount,
+                         MPI_Datatype recvtype,
+                         MPIL_Comm* comm);
+
+
+int alltoall_rma(const void* sendbuf,
                          const int sendcount,
                          MPI_Datatype sendtype,
                          void* recvbuf,

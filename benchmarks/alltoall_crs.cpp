@@ -111,13 +111,18 @@ int main(int argc, char* argv[])
     MPIL_Comm_topo_init(xcomm);
 
     // Form Window
+    MPI_Win win;
+    char* win_array;
     int bytes = num_procs * sizeof(int);
     MPI_Barrier(MPI_COMM_WORLD);
     t0 = MPI_Wtime();
     for (int i = 0; i < n_iter; i++)
     {
-        MPIL_Comm_win_init(xcomm, bytes, sizeof(int));
-        MPIL_Comm_win_free(xcomm);
+        MPI_Alloc_mem(bytes, MPI_INFO_NULL, &(win_array));
+        MPI_Win_create(win_array, bytes, 1, MPI_INFO_NULL, MPI_COMM_WORLD,
+                &(win));
+        MPI_Win_free(&win);
+        MPI_Free_mem(win_array);
     }
     tfinal = MPI_Wtime() - t0;
     MPI_Reduce(&tfinal, &t0, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
@@ -125,8 +130,6 @@ int main(int argc, char* argv[])
     {
         printf("MPIL_Comm_win_init_time %e\n", t0 / n_iter);
     }
-
-    MPIL_Comm_win_init(xcomm, bytes, sizeof(int));
 
     int n_recvs;
     int *src, *recvvals;

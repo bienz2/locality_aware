@@ -74,6 +74,17 @@ int MPIL_Request_free(MPIL_Request** request_ptr)
     if (request->local_comm != MPI_COMM_NULL)
         MPI_Comm_free(&(request->local_comm));
 
+    if (request->win != MPI_WIN_NULL)
+    {
+        MPI_Win_free(&(request->win));
+    }
+    if (request->win_array != NULL)
+    {
+        MPI_Free_mem(request->win_array);
+    }
+    request->win_bytes      = 0;
+    request->win_type_bytes = 0;
+
 #ifdef GPU  
     //For now, we have always allocated these with MPIL_Alloc 
     

@@ -6,6 +6,7 @@ extern "C" {
 
 // Default algorithms
 enum AlltoallMethod mpil_alltoall_implementation          = ALLTOALL_PAIRWISE;
+enum AlltoallMethod mpil_alltoall_init_implementation     = ALLTOALL_PAIRWISE;
 enum AlltoallvMethod mpil_alltoallv_implementation        = ALLTOALLV_PAIRWISE;
 enum AllreduceMethod mpil_allreduce_implementation        = ALLREDUCE_PMPI;
 enum AllreduceMethod mpil_allreduce_init_implementation   = ALLREDUCE_PMPI;
@@ -27,6 +28,11 @@ int MPIL_Set_collective_radix(int radix)
 int MPIL_Set_alltoall_algorithm(enum AlltoallMethod algorithm)
 {
     mpil_alltoall_implementation = (enum AlltoallMethod)algorithm;
+    return MPI_SUCCESS;
+}
+int MPIL_Set_alltoall_init_algorithm(enum AlltoallMethod algorithm)
+{
+    mpil_alltoall_init_implementation = (enum AlltoallMethod)algorithm;
     return MPI_SUCCESS;
 }
 int MPIL_Set_alltoallv_algorithm(enum AlltoallvMethod algorithm)

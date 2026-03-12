@@ -40,26 +40,6 @@ typedef struct _MPIL_Comm
     /**@brief Processes per node**/
     int ppn;
 
-    /**@brief MPI_window if using sync**/
-    MPI_Win win;
-    /**@brief Buffer for MPI_window**/
-    char* win_array;
-    /**@brief Size of win_array in bytes**/
-    int win_bytes;
-    /**@brief Size of the datatype in win_array in bytes**/
-    int win_type_bytes;
-
-    /**@brief Internal array of requests made during a blocking collective**/
-    MPI_Request* requests;
-    /**@brief Status the requests in requests**/
-    MPI_Status* statuses;
-
-    /**@brief Size of requests and statuses
-       @details
-                    requests and statuses should always be the same size.
-                    can be updated through MPIL_Comm_req_resize;
-    **/
-    int n_requests;
     /** @brief Unique identifier for any requests using this comm (defaulting to 126)**/
     int tag;
     /** @brief Maximum size of tag allowed by the system.**/

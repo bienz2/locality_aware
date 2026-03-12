@@ -55,10 +55,9 @@ int alltoallv_crs_personalized(const int send_nnz,
     char* recvvals;
     MPIL_Alloc((void**)&recvvals, *recv_size * recv_bytes);
 
-    if (comm->n_requests < send_nnz)
-    {
-        MPIL_Comm_req_resize(comm, send_nnz);
-    }
+    std::vector<MPI_Request> requests;
+    if (send_nnz)
+        requests.resize(send_nnz);
 
     // Send each message
     for (int i = 0; i < send_nnz; i++)
@@ -70,7 +69,7 @@ int alltoallv_crs_personalized(const int send_nnz,
                   proc,
                   tag,
                   comm->global_comm,
-                  &(comm->requests[i]));
+                  &(requests[i]));
     }
 
     ctr = 0;
@@ -114,7 +113,7 @@ int alltoallv_crs_personalized(const int send_nnz,
 
     if (send_nnz)
     {
-        MPI_Waitall(send_nnz, comm->requests, MPI_STATUSES_IGNORE);
+        MPI_Waitall(send_nnz, requests.data(), MPI_STATUSES_IGNORE);
     }
 
     return MPI_SUCCESS;
@@ -148,10 +147,9 @@ int alltoallv_crs_nonblocking(const int send_nnz,
     int tag;
     get_tag(comm, &tag);
 
-    if (comm->n_requests < send_nnz)
-    {
-        MPIL_Comm_req_resize(comm, send_nnz);
-    }
+    std::vector<MPI_Request> requests;
+    if (send_nnz)
+        requests.resize(send_nnz);
 
     for (int i = 0; i < send_nnz; i++)
     {
@@ -162,7 +160,7 @@ int alltoallv_crs_nonblocking(const int send_nnz,
                    proc,
                    tag,
                    comm->global_comm,
-                   &(comm->requests[i]));
+                   &(requests[i]));
     }
 
     ibar = 0;
@@ -209,7 +207,7 @@ int alltoallv_crs_nonblocking(const int send_nnz,
         }
         else
         {
-            MPI_Testall(send_nnz, comm->requests, &flag, MPI_STATUSES_IGNORE);
+            MPI_Testall(send_nnz, requests.data(), &flag, MPI_STATUSES_IGNORE);
             if (flag)
             {
                 ibar = 1;
@@ -502,10 +500,9 @@ int alltoallv_crs_personalized_loc(const int send_nnz,
     MPI_Comm_rank(comm->local_comm, &local_rank);
     MPI_Comm_size(comm->local_comm, &PPN);
 
-    if (comm->n_requests < send_nnz)
-    {
-        MPIL_Comm_req_resize(comm, send_nnz);
-    }
+    std::vector<MPI_Request> requests;
+    if (send_nnz)
+        requests.resize(send_nnz);
 
     int tag;
     get_tag(comm, &tag);
@@ -600,7 +597,7 @@ int alltoallv_crs_personalized_loc(const int send_nnz,
                       i,
                       tag,
                       comm->group_comm,
-                      &(comm->requests[n_sends++]));
+                      &(requests[n_sends++]));
         }
     }
 
@@ -642,7 +639,7 @@ int alltoallv_crs_personalized_loc(const int send_nnz,
         n_recvs++;
     }
 
-    MPI_Waitall(n_sends, comm->requests, MPI_STATUSES_IGNORE);
+    MPI_Waitall(n_sends, requests.data(), MPI_STATUSES_IGNORE);
 
     local_redistributev(n_recvs,
                         origins,
@@ -687,10 +684,9 @@ int alltoallv_crs_nonblocking_loc(const int send_nnz,
     MPI_Comm_rank(comm->local_comm, &local_rank);
     MPI_Comm_size(comm->local_comm, &PPN);
 
-    if (comm->n_requests < send_nnz)
-    {
-        MPIL_Comm_req_resize(comm, send_nnz);
-    }
+    std::vector<MPI_Request> requests;
+    if (send_nnz)
+        requests.resize(send_nnz);
 
     int tag;
     get_tag(comm, &tag);
@@ -783,7 +779,7 @@ int alltoallv_crs_nonblocking_loc(const int send_nnz,
                        i,
                        tag,
                        comm->group_comm,
-                       &(comm->requests[n_sends++]));
+                       &(requests[n_sends++]));
         }
     }
 
@@ -841,7 +837,7 @@ int alltoallv_crs_nonblocking_loc(const int send_nnz,
         {
             // Test if all of my synchronous sends have completed.
             // They only complete once actually received.
-            MPI_Testall(n_sends, comm->requests, &flag, MPI_STATUSES_IGNORE);
+            MPI_Testall(n_sends, requests.data(), &flag, MPI_STATUSES_IGNORE);
             if (flag)
             {
                 ibar = 1;

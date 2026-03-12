@@ -19,6 +19,10 @@ int allreduce_dissemination_loc_start(MPIL_Request* request);
 int allreduce_dissemination_loc_wait(MPIL_Request* request, MPI_Status* status);
 int allreduce_dissemination_radix_start(MPIL_Request* request);
 int allreduce_dissemination_radix_wait(MPIL_Request* request, MPI_Status* status);
+int allreduce_rma_start(MPIL_Request* request);
+int allreduce_rma_wait(MPIL_Request* request, MPI_Status* status);
+int allreduce_rma_earlybird_start(MPIL_Request* request);
+int allreduce_rma_earlybird_wait(MPIL_Request* request, MPI_Status* status);
 
 /** @brief Function pointer to allreduce implemenation
  * @details 
@@ -135,6 +139,49 @@ int allreduce_dissemination_radix_init(const void* sendbuf,
                                  MPIL_Info* info,
                                  MPIL_Request** req_ptr);
 
+/** @brief Call the dumb persistent RMA allreduce, which fences,
+ * accumulates to everyone, and fences again.
+ * @param [in] sendbuf buffer containing data to reduce
+ * @param [out] recvbuf buffer to receive and reduce all messages
+ * @param [in] count int number of items to be reduced
+ * @param [in] datatype MPI_Datatype
+ * @param [in] op MPI_Op
+ * @param [in] comm MPIL_Comm used for context
+ * @param [in] info MPIL_Info used for hints
+ * @param [out] req_ptr MPIL_Request** returns pointer to persistent request
+ **/
+int allreduce_rma_init(const void* sendbuf,
+                                 void* recvbuf,
+                                 int count,
+                                 MPI_Datatype datatype,
+                                 MPI_Op op,
+                                 MPIL_Comm* comm,
+                                 MPIL_Info* info,
+                                 MPIL_Request** req_ptr);
+
+/** @brief Call the earlybird version of the dumb persistent 
+ * RMA allreduce, which fences in init,
+ * accumulates to everyone, and fence/memcpy/fence in wait.
+ * Uses extra buffer on window so that no fence is needed in start.
+ * @param [in] sendbuf buffer containing data to reduce
+ * @param [out] recvbuf buffer to receive and reduce all messages
+ * @param [in] count int number of items to be reduced
+ * @param [in] datatype MPI_Datatype
+ * @param [in] op MPI_Op
+ * @param [in] comm MPIL_Comm used for context
+ * @param [in] info MPIL_Info used for hints
+ * @param [out] req_ptr MPIL_Request** returns pointer to persistent request
+ **/
+int allreduce_rma_earlybird_init(const void* sendbuf,
+                                 void* recvbuf,
+                                 int count,
+                                 MPI_Datatype datatype,
+                                 MPI_Op op,
+                                 MPIL_Comm* comm,
+                                 MPIL_Info* info,
+                                 MPIL_Request** req_ptr);
+
+
 
 /** @brief Calls underlying PMPI_Allreduce implementation **/
 int allreduce_pmpi_init(const void* sendbuf,
@@ -200,6 +247,30 @@ int allreduce_dissemination_radix_init_helper(const void* sendbuf,
                                               MPIL_Request** req_ptr,
                                               MPIL_Alloc_ftn alloc_ftn,
                                               MPIL_Free_ftn free_ftn);
+
+int allreduce_rma_init_helper(
+                             const void* sendbuf,
+                             void* recvbuf,
+                             int count,
+                             MPI_Datatype datatype,
+                             MPI_Op op,
+                             MPIL_Comm* comm,
+                             MPIL_Info* info,
+                             MPIL_Request** req_ptr,
+                             MPIL_Alloc_ftn alloc_ftn,
+                             MPIL_Free_ftn free_ftn);
+
+int allreduce_rma_earlybird_init_helper(
+                             const void* sendbuf,
+                             void* recvbuf,
+                             int count,
+                             MPI_Datatype datatype,
+                             MPI_Op op,
+                             MPIL_Comm* comm,
+                             MPIL_Info* info,
+                             MPIL_Request** req_ptr,
+                             MPIL_Alloc_ftn alloc_ftn,
+                             MPIL_Free_ftn free_ftn);
 
 
 int allreduce_dissemination_loc_init_core(

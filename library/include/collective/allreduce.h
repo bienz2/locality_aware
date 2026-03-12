@@ -106,6 +106,23 @@ int allreduce_dissemination_radix(const void* sendbuf,
                                  MPI_Op op,
                                  MPIL_Comm* comm);
 
+
+/** @brief Calls dumb RMA version, each rank accumulates to 
+ * each other rank
+ * @param [in] sendbuf buffer containing data to reduce
+ * @param [out] recvbuf buffer to receive and reduce all messages
+ * @param [in] count int number of items to be reduced
+ * @param [in] datatype MPI_Datatype
+ * @param [in] op MPI_Op
+ * @param [in] comm MPIL_Comm used for context
+ **/
+int allreduce_rma(const void* sendbuf,
+                                 void* recvbuf,
+                                 int count,
+                                 MPI_Datatype datatype,
+                                 MPI_Op op,
+                                 MPIL_Comm* comm);
+
 /** @brief Calls underlying PMPI_Allreduce implementation **/
 int allreduce_pmpi(const void* sendbuf,
                                  void* recvbuf,

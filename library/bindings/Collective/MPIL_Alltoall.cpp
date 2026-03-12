@@ -42,6 +42,9 @@ int MPIL_Alltoall(const void* sendbuf,
         case ALLTOALL_NONBLOCKING:
             method = alltoall_nonblocking;
             break;
+        case ALLTOALL_RMA:
+            method = alltoall_rma;
+            break;
         case ALLTOALL_HIERARCHICAL_PAIRWISE:
             method = alltoall_hierarchical_pairwise;
             break;

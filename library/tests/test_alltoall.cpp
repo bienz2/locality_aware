@@ -106,6 +106,17 @@ int main(int argc, char** argv)
                       locality_comm);
         compare_alltoall_results(pmpi_alltoall, mpil_alltoall, s);
 
+        // Test Standard Nonblocking
+        MPIL_Set_alltoall_algorithm(ALLTOALL_RMA);
+        MPIL_Alltoall(local_data.data(),
+                      s,
+                      MPI_INT,
+                      mpil_alltoall.data(),
+                      s,
+                      MPI_INT,
+                      locality_comm);
+        compare_alltoall_results(pmpi_alltoall, mpil_alltoall, s);
+
         // Test Hierarchical + Pairwise
         std::fill(mpil_alltoall.begin(), mpil_alltoall.end(), 0);
         MPIL_Set_alltoall_algorithm(ALLTOALL_HIERARCHICAL_PAIRWISE);

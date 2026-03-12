@@ -16,14 +16,6 @@ int initialize_comm_object(MPIL_Comm** xcomm_ptr, MPI_Comm global_comm)
 
     xcomm->neighbor_comm = MPI_COMM_NULL;
 
-    xcomm->win       = MPI_WIN_NULL;
-    xcomm->win_array = NULL;
-    xcomm->win_bytes = 0;
-
-    xcomm->requests   = NULL;
-    xcomm->statuses   = NULL;
-    xcomm->n_requests = 0;
-
     int flag;
     MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_TAG_UB, &(xcomm->max_tag), &flag);
     xcomm->tag = 126 % xcomm->max_tag;

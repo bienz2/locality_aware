@@ -18,6 +18,7 @@ target_sources(locality_aware PRIVATE
 	alltoall_nonblocking.cpp
 	alltoall_pairwise.cpp
 	alltoall_pmpi.cpp
+    alltoall_rma.cpp
 	nonblocking_helper.cpp
 	pairwise_helper.cpp
 )

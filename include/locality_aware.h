@@ -3,6 +3,7 @@
 
 #include <mpi.h>
 
+#if defined(GPU)
 #if defined(HIP)
 #include "utils_hip.h"
 #endif
@@ -16,7 +17,6 @@
 extern "C" {
 #endif
 
-#if defined(GPU)
 /* Objects offered by this header*/
 typedef struct _MPIL_Comm MPIL_Comm;
 typedef struct _MPIL_Info MPIL_Info;
@@ -55,6 +55,7 @@ enum AlltoallMethod
 #endif
     ALLTOALL_PAIRWISE,
     ALLTOALL_NONBLOCKING,
+    ALLTOALL_RMA,
     ALLTOALL_HIERARCHICAL_PAIRWISE,
     ALLTOALL_HIERARCHICAL_NONBLOCKING,
     ALLTOALL_MULTILEADER_PAIRWISE,
@@ -105,6 +106,8 @@ enum AllreduceMethod
     ALLREDUCE_DISSEMINATION_LOC,
     ALLREDUCE_DISSEMINATION_ML,
     ALLREDUCE_DISSEMINATION_RADIX,
+    ALLREDUCE_RMA,
+    ALLREDUCE_RMA_EARLYBIRD,
     ALLREDUCE_PMPI
 };
 
@@ -168,6 +171,7 @@ enum AlltoallvCRSMethod
  *@{
  */
 extern enum AlltoallMethod mpil_alltoall_implementation;
+extern enum AlltoallMethod mpil_alltoall_init_implementation;
 extern enum AlltoallvMethod mpil_alltoallv_implementation;
 extern enum AllreduceMethod mpil_allreduce_implementation;
 extern enum AllreduceMethod mpil_allreduce_init_implementation;
@@ -189,6 +193,7 @@ extern int mpil_collective_radix;
  * @{
  */
 int MPIL_Set_alltoall_algorithm(enum AlltoallMethod algorithm);
+int MPIL_Set_alltoall_init_algorithm(enum AlltoallMethod algorithm);
 int MPIL_Set_alltoallv_algorithm(enum AlltoallvMethod algorithm);
 int MPIL_Set_allreduce_algorithm(enum AllreduceMethod algorithm);
 int MPIL_Set_allreduce_init_algorithm(enum AllreduceMethod algorithm);
@@ -283,20 +288,6 @@ int MPIL_Comm_leader_init(MPIL_Comm* xcomm, int procs_per_leader);
 .**/
 int MPIL_Comm_leader_free(MPIL_Comm* xcomm);
 
-/** @brief Create a window for one-sided communication.
- * @details
- *    Allocate memory and create MPI_Window.
- *
- * @param [in, out] xcomm
- * @param [in] bytes size of windows in bytes
- * @param [in] type_bytes local_unit_size for displacements, in bytes
- * @return MPI_Success upon successful completion.
-.**/
-int MPIL_Comm_win_init(MPIL_Comm* xcomm, int bytes, int type_bytes);
-
-/** @brief Delete window and free allocated memory, called by MPIL_Comm_free**/
-int MPIL_Comm_win_free(MPIL_Comm* xcomm);
-
 /** @brief Initialize GPU stream inside the communicator
  * @details
  * GPU Stream is mapped based on selected support.
@@ -316,9 +307,6 @@ int MPIL_Comm_device_init(MPIL_Comm* xcomm);
  * @return MPI_Success upon successful completion.
 .**/
 int MPIL_Comm_device_free(MPIL_Comm* xcomm);
-
-/** @brief Resize xcomm number of requests and status arrays to be size n.**/
-int MPIL_Comm_req_resize(MPIL_Comm* xcomm, int n);
 
 /** @brief Wrapper around update_locality, see update_locality().**/
 int MPIL_Comm_update_locality(MPIL_Comm* xcomm, int ppn);
@@ -383,6 +371,13 @@ int MPIL_Request_free(MPIL_Request** request);
 
 /** @brief Set reorder value of request to value **/
 int MPIL_Request_reorder(MPIL_Request* request, int value);
+
+/** @brief creates MPI window and associated array of size bytes **/
+int MPIL_Request_win_init(MPIL_Request*, void* ptr,
+        int bytes, int type_bytes, MPI_Comm comm);
+
+/** @brief frees MPI window and associated array **/
+int MPIL_Request_win_free(MPIL_Request*);
 
 /** @brief Wrapper around MPI_Dist_graph_create_adjacent. */
 int MPIL_Dist_graph_create_adjacent(MPI_Comm comm_old,
@@ -459,6 +454,22 @@ int MPIL_Allgather(const void* sendbuf,
                    int recvcount,
                    MPI_Datatype recvtype,
                    MPIL_Comm* comm);
+
+
+/** @brief Wrapper around MPI_Alltoall_init.
+ *  @details
+ *  Defaults to AllTOALL_PMPI
+ *	@ingroup collective_func
+ */
+int MPIL_Alltoall_init(const void* sendbuf,
+                  const int sendcount,
+                  MPI_Datatype sendtype,
+                  void* recvbuf,
+                  const int recvcount,
+                  MPI_Datatype recvtype,
+                  MPIL_Comm* comm,
+                  MPIL_Info* info,
+                  MPIL_Request** req_ptr);
 
 /** @brief Wrapper around MPI_Allreduce_init.
  *  @details

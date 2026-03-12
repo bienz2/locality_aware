@@ -3,4 +3,5 @@ target_sources(locality_aware PRIVATE
     allreduce_dissemination_loc.cpp
     allreduce_dissemination_radix.cpp
     allreduce_pmpi.cpp
+    allreduce_rma.cpp
 )

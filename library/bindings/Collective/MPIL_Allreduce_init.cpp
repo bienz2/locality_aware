@@ -69,6 +69,12 @@ int MPIL_Allreduce_init(const void* sendbuf,
             method = allreduce_pmpi_init;
             break;
 #endif
+        case ALLREDUCE_RMA:
+            method = allreduce_rma_init;
+            break;
+        case ALLREDUCE_RMA_EARLYBIRD:
+            method = allreduce_rma_earlybird_init;
+            break;
         default:
             method = allreduce_recursive_doubling_init;
             break;

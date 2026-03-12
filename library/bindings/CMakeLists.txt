@@ -1,6 +1,7 @@
 target_sources(locality_aware PRIVATE 
 	global_defaults.cpp
 	Collective/MPIL_Alltoall.cpp
+	Collective/MPIL_Alltoall_init.cpp
 	Collective/MPIL_Alltoallv.cpp
 	Collective/MPIL_Alltoall_crs.cpp
 	Collective/MPIL_Alltoallv_crs.cpp
@@ -15,6 +16,7 @@ target_sources(locality_aware PRIVATE
 	MPIL_Request/MPIL_Wait.cpp
 	MPIL_Request/MPIL_Request_free.cpp
 	MPIL_Request/MPIL_Request_reorder.cpp
+    MPIL_Request/MPIL_Request_win_init.cpp
 	MPIL_Setup/MPIL_Finalize.cpp
 	MPIL_Setup/MPIL_Init.cpp
 	MPIL_Topo/MPIL_Topo_free.cpp

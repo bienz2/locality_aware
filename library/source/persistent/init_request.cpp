@@ -35,11 +35,19 @@ void init_request(MPIL_Request** request_ptr)
     request->op = MPI_SUM;
     request->num_ops = 0;
 
+    request->reorder = 0;
+
     request->tmpbuf = NULL;
     request->free_ftn = MPIL_Free;
 
     request->local_comm = MPI_COMM_NULL;
     request->global_comm = MPI_COMM_NULL;
+
+    request->win       = MPI_WIN_NULL;
+    request->win_array = NULL;
+    request->win_bytes = 0;
+    request->win_type_bytes = 0;
+    request->n_puts = 0;
 
 #ifdef GPU
     request->gpu_sendbuf = NULL;
