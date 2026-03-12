@@ -72,6 +72,9 @@ int MPIL_Allreduce_init(const void* sendbuf,
         case ALLREDUCE_RMA:
             method = allreduce_rma_init;
             break;
+        case ALLREDUCE_RMA_HIERARCHICAL:
+            method = allreduce_rma_hierarchical_init;
+            break;
         case ALLREDUCE_RMA_EARLYBIRD:
             method = allreduce_rma_earlybird_init;
             break;

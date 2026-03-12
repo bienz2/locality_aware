@@ -63,10 +63,11 @@ int allreduce_rma_start(MPIL_Request* request)
 {
     if (request == NULL)
         return 0;
-
-#if defined(GPU)
 int type_size;
 MPI_Type_size(request->datatype, &type_size);
+memset(request->recvbuf, 0, request->count*type_size);
+
+#if defined(GPU)
 if (request->gpu_sendbuf)
 {
 #if defined(APU)

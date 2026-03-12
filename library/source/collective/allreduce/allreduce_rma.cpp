@@ -22,6 +22,8 @@ int allreduce_rma(const void* sendbuf,
     MPI_Comm_rank(comm->global_comm, &rank);
     MPI_Comm_size(comm->global_comm, &num_procs);
 
+    memset(recvbuf, 0, count*type_size);
+
     MPI_Win win;
     MPI_Win_create(recvbuf, type_size*count, 1, MPI_INFO_NULL, 
             comm->global_comm, &(win));

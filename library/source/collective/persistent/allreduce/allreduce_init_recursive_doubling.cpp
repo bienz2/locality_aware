@@ -33,9 +33,32 @@ int allreduce_recursive_doubling_init_helper(const void* sendbuf,
                                  MPIL_Alloc_ftn alloc_ftn,
                                  MPIL_Free_ftn free_ftn)
 {
+
+    int tag;
+    get_tag(comm, &tag);
+
+    allreduce_recursive_doubling_init_core(sendbuf, recvbuf,
+            count, datatype, op, comm->global_comm, tag, info, req_ptr,
+            alloc_ftn, free_ftn);
+
+    return MPI_SUCCESS;
+}
+
+int allreduce_recursive_doubling_init_core(const void* sendbuf,
+                                 void* recvbuf,
+                                 int count,
+                                 MPI_Datatype datatype,
+                                 MPI_Op op,
+                                 MPI_Comm comm,
+                                 int tag,
+                                 MPIL_Info* info,
+                                 MPIL_Request** req_ptr,
+                                 MPIL_Alloc_ftn alloc_ftn,
+                                 MPIL_Free_ftn free_ftn)
+{
     int rank, num_procs;
-    MPI_Comm_rank(comm->global_comm, &rank);
-    MPI_Comm_size(comm->global_comm, &num_procs);
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &num_procs);
 
     MPIL_Request* request;
     init_request(&request);
@@ -72,16 +95,14 @@ int allreduce_recursive_doubling_init_helper(const void* sendbuf,
     alloc_ftn(&(request->tmpbuf), type_size*count);
     request->free_ftn = free_ftn;
 
-    int tag;
-    get_tag(comm, &tag);
 
     request->n_msgs = 0;
     if (sendbuf != MPI_IN_PLACE)
     {
         MPI_Send_init(sendbuf, count, datatype, rank, tag,
-                comm->global_comm, &(local_L_request->requests[local_L_request->n_msgs++]));
+                comm, &(local_L_request->requests[local_L_request->n_msgs++]));
         MPI_Recv_init(recvbuf, count, datatype, rank, tag,
-                comm->global_comm, &(local_L_request->requests[local_L_request->n_msgs++]));
+                comm, &(local_L_request->requests[local_L_request->n_msgs++]));
     }
 
     int proc; 
@@ -93,29 +114,29 @@ int allreduce_recursive_doubling_init_helper(const void* sendbuf,
     {
         proc = rank - log2_num_procs;
         MPI_Send_init(recvbuf, count, datatype, rank - log2_num_procs, tag, 
-                comm->global_comm, &(local_S_request->requests[local_S_request->n_msgs++]));
+                comm, &(local_S_request->requests[local_S_request->n_msgs++]));
         MPI_Recv_init(recvbuf, count, datatype, rank - log2_num_procs, tag, 
-                comm->global_comm, &(local_R_request->requests[local_R_request->n_msgs++]));
+                comm, &(local_R_request->requests[local_R_request->n_msgs++]));
     }
     else
     {
         if (rank < extra_procs)
         {
             MPI_Recv_init(request->tmpbuf, count, datatype, rank + log2_num_procs, tag, 
-                    comm->global_comm, &(local_S_request->requests[local_S_request->n_msgs++]));
+                    comm, &(local_S_request->requests[local_S_request->n_msgs++]));
         }
         for (int stride = 1; stride < log2_num_procs; stride = stride << 1)
         {
             proc = rank ^ stride;
-            MPI_Send_init(recvbuf, count, datatype, proc, tag, comm->global_comm, 
+            MPI_Send_init(recvbuf, count, datatype, proc, tag, comm, 
                     &(request->requests[request->n_msgs++]));
-            MPI_Recv_init(request->tmpbuf, count, datatype, proc, tag, comm->global_comm, 
+            MPI_Recv_init(request->tmpbuf, count, datatype, proc, tag, comm, 
                     &(request->requests[request->n_msgs++]));
         }
         if (rank < extra_procs)
         {
             MPI_Send_init(recvbuf, count, datatype, rank + log2_num_procs, tag, 
-                    comm->global_comm, &(local_R_request->requests[local_R_request->n_msgs++]));
+                    comm, &(local_R_request->requests[local_R_request->n_msgs++]));
         }
     }
 

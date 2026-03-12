@@ -44,7 +44,6 @@ int allreduce_rma_earlybird_init_helper(const void* sendbuf,
     MPI_Type_size(datatype, &type_size);
 
     MPI_Alloc_mem(count*type_size, MPI_INFO_NULL, &(request->win_array));
-    memset(request->win_array, 0, count*type_size);
     MPIL_Request_win_init(request, request->win_array, count*type_size, 1, comm->global_comm);
     request->sendbuf = sendbuf;
     request->recvbuf = recvbuf;
@@ -58,6 +57,7 @@ int allreduce_rma_earlybird_init_helper(const void* sendbuf,
 
     *req_ptr = request;    
 
+    memset(request->win_array, 0, request->count*type_size);
     MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, request->win);
 
     return MPI_SUCCESS;
