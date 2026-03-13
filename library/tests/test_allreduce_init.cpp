@@ -224,6 +224,37 @@ int main(int argc, char** argv)
         MPIL_Request_free(&mpil_request);
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
 
+
+        std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
+        MPIL_Set_allreduce_init_algorithm(ALLREDUCE_RMA_MULTILEADER);
+        MPIL_Allreduce_init(local_data.data(),
+                            mpil_allreduce.data(),
+                            s, 
+                            MPI_INT,
+                            MPI_SUM,
+                            locality_comm,
+                            mpil_info,
+                            &mpil_request);
+        MPIL_Start(mpil_request);
+        MPIL_Wait(mpil_request, MPI_STATUS_IGNORE);
+        MPIL_Request_free(&mpil_request);
+        compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
+
+        std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
+        MPIL_Set_allreduce_init_algorithm(ALLREDUCE_RMA_MULTILEADER_EARLYBIRD);
+        MPIL_Allreduce_init(local_data.data(),
+                            mpil_allreduce.data(),
+                            s, 
+                            MPI_INT,
+                            MPI_SUM,
+                            locality_comm,
+                            mpil_info,
+                            &mpil_request);
+        MPIL_Start(mpil_request);
+        MPIL_Wait(mpil_request, MPI_STATUS_IGNORE);
+        MPIL_Request_free(&mpil_request);
+        compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
+
     }
 
     MPIL_Info_free(&mpil_info);
