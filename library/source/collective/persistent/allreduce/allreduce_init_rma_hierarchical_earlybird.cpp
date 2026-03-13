@@ -150,7 +150,7 @@ int allreduce_rma_hierarchical_earlybird_init_core(const void* sendbuf,
     *req_ptr = request;   
 
     memset(request->win_array, 0, request->count*type_size);
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, request->win);
+    MPI_Win_fence(0, request->win);
 
     return MPI_SUCCESS;
 }
@@ -189,7 +189,7 @@ int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status*
     int type_size;
     MPI_Type_size(request->datatype, &type_size);
 
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOSUCCEED, request->win);
+    MPI_Win_fence(0, request->win);
 
     // Start Recursive Doubling Allreduce among leaders
     if (request->local_L_request)
@@ -198,12 +198,12 @@ int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status*
         MPIL_Wait(request->local_L_request, MPI_STATUS_IGNORE);
     }
     MPI_Barrier(request->local_comm);
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, request->win);
+    MPI_Win_fence(0, request->win);
     MPI_Get(request->recvbuf, request->count, request->datatype, 
             0, 0, request->count, request->datatype, request->win);
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOSUCCEED, request->win);
+    MPI_Win_fence(0, request->win);
     memset(request->win_array, 0, request->count*type_size);
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, request->win);
+    MPI_Win_fence(0, request->win);
 
 #if defined(GPU)
 if (request->gpu_recvbuf)

@@ -173,7 +173,7 @@ if (request->gpu_sendbuf)
 }
 #endif
 
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, request->win);
+    MPI_Win_fence(0, request->win);
 
     MPI_Accumulate(request->sendbuf, request->count, request->datatype, 
             0, 0, request->count, request->datatype, request->op, 
@@ -184,7 +184,7 @@ if (request->gpu_sendbuf)
 
 int allreduce_rma_hierarchical_wait(MPIL_Request* request, MPI_Status* status)   
 {
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOSUCCEED, request->win);
+    MPI_Win_fence(0, request->win);
 
     // Start Recursive Doubling Allreduce among leaders
     if (request->local_L_request)
@@ -193,10 +193,10 @@ int allreduce_rma_hierarchical_wait(MPIL_Request* request, MPI_Status* status)
         MPIL_Wait(request->local_L_request, MPI_STATUS_IGNORE);
     }
     MPI_Barrier(request->local_comm);
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, request->win);
+    MPI_Win_fence(0, request->win);
     MPI_Get(request->recvbuf, request->count, request->datatype, 
             0, 0, request->count, request->datatype, request->win);
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOSUCCEED, request->win);
+    MPI_Win_fence(0, request->win);
 
 #if defined(GPU)
 int type_size;

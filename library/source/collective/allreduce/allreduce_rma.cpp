@@ -28,11 +28,11 @@ int allreduce_rma(const void* sendbuf,
     MPI_Win_create(recvbuf, type_size*count, 1, MPI_INFO_NULL, 
             comm->global_comm, &(win));
 
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, win);
+    MPI_Win_fence(0, win);
     MPI_Accumulate(sendbuf, count, datatype, 0, 0, count, datatype, op, win);
     MPI_Win_fence(0, win);
     MPI_Get(recvbuf, count, datatype, 0, 0, count, datatype, win);
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOSUCCEED, win);    
+    MPI_Win_fence(0, win);    
 
     MPI_Win_free(&(win));
 

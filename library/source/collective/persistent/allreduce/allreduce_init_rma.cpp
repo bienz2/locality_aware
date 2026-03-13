@@ -80,7 +80,7 @@ if (request->gpu_sendbuf)
 }
 #endif
 
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, request->win);
+    MPI_Win_fence(0, request->win);
 
     MPI_Accumulate(request->sendbuf, request->count, request->datatype, 
             0, 0, request->count, request->datatype, request->op, 
@@ -95,7 +95,7 @@ int allreduce_rma_wait(MPIL_Request* request, MPI_Status* status)
     MPI_Win_fence(0, request->win);
     MPI_Get(request->recvbuf, request->count, request->datatype, 
             0, 0, request->count, request->datatype, request->win);
-    MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOSUCCEED, request->win);  
+    MPI_Win_fence(0, request->win);  
 
 #if defined(GPU)
 int type_size;
