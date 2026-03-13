@@ -46,10 +46,10 @@ int allreduce_rma_init_helper(const void* sendbuf,
     MPIL_Request_win_init(request, recvbuf, count*type_size, 1, comm->global_comm);
     request->sendbuf = sendbuf;
     request->recvbuf = recvbuf;
-    request->n_puts = num_procs;
     request->count = count;
     request->datatype = datatype;
     request->op = op;
+    MPI_Comm_dup(comm->global_comm, &(request->global_comm));
 
     request->start_function = allreduce_rma_start;
     request->wait_function  = allreduce_rma_wait;
@@ -93,9 +93,8 @@ if (request->gpu_sendbuf)
 int allreduce_rma_wait(MPIL_Request* request, MPI_Status* status)   
 {
     MPI_Win_fence(0, request->win);
-    MPI_Get(request->recvbuf, request->count, request->datatype, 
-            0, 0, request->count, request->datatype, request->win);
-    MPI_Win_fence(0, request->win);  
+    MPI_Bcast(request->recvbuf, request->count, request->datatype,
+            0, request->global_comm);
 
 #if defined(GPU)
 int type_size;

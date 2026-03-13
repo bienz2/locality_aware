@@ -161,7 +161,6 @@ int allreduce_rma_hierarchical_earlybird_start(MPIL_Request* request)
         return 0;
 int type_size;
 MPI_Type_size(request->datatype, &type_size);
-memset(request->recvbuf, 0, request->count*type_size);
 
 #if defined(GPU)
 if (request->gpu_sendbuf)
@@ -197,11 +196,9 @@ int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status*
         MPIL_Start(request->local_L_request);
         MPIL_Wait(request->local_L_request, MPI_STATUS_IGNORE);
     }
-    MPI_Barrier(request->local_comm);
-    MPI_Win_fence(0, request->win);
-    MPI_Get(request->recvbuf, request->count, request->datatype, 
-            0, 0, request->count, request->datatype, request->win);
-    MPI_Win_fence(0, request->win);
+    memcpy(request->recvbuf, request->win_array, request->count*type_size);
+    MPI_Bcast(request->recvbuf, request->count, request->datatype,
+            0, request->local_comm);
     memset(request->win_array, 0, request->count*type_size);
     MPI_Win_fence(0, request->win);
 

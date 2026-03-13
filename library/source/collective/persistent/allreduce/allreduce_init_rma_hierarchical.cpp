@@ -192,11 +192,8 @@ int allreduce_rma_hierarchical_wait(MPIL_Request* request, MPI_Status* status)
         MPIL_Start(request->local_L_request);
         MPIL_Wait(request->local_L_request, MPI_STATUS_IGNORE);
     }
-    MPI_Barrier(request->local_comm);
-    MPI_Win_fence(0, request->win);
-    MPI_Get(request->recvbuf, request->count, request->datatype, 
-            0, 0, request->count, request->datatype, request->win);
-    MPI_Win_fence(0, request->win);
+    MPI_Bcast(request->recvbuf, request->count, request->datatype,
+            0, request->local_comm);
 
 #if defined(GPU)
 int type_size;

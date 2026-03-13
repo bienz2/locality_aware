@@ -51,6 +51,7 @@ int allreduce_rma_earlybird_init_helper(const void* sendbuf,
     request->count = count;
     request->datatype = datatype;
     request->op = op;
+    MPI_Comm_dup(comm->global_comm, &(request->global_comm));
 
     request->start_function = allreduce_rma_earlybird_start;
     request->wait_function  = allreduce_rma_earlybird_wait;
@@ -96,13 +97,13 @@ if (request->gpu_sendbuf)
 
 int allreduce_rma_earlybird_wait(MPIL_Request* request, MPI_Status* status)   
 {
-    MPI_Win_fence(0, request->win);
-    MPI_Get(request->recvbuf, request->count, request->datatype, 
-            0, 0, request->count, request->datatype, request->win);
-    MPI_Win_fence(0, request->win);
-
     int type_size;
     MPI_Type_size(request->datatype, &type_size);
+
+    MPI_Win_fence(0, request->win);
+    memcpy(request->recvbuf, request->win_array, request->count*type_size);
+    MPI_Bcast(request->recvbuf, request->count, request->datatype,
+            0, request->global_comm);
     memset(request->win_array, 0, request->count*type_size);
     MPI_Win_fence(0, request->win);
 
