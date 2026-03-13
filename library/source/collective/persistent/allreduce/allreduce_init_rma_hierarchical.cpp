@@ -43,11 +43,6 @@ int allreduce_rma_hierarchical_init_helper(const void* sendbuf,
     int local_rank, ppn;
     MPI_Comm_rank(comm->local_comm, &local_rank);
     MPI_Comm_size(comm->local_comm, &ppn);
-    printf("local rank %d, ppn %d\n", local_rank, ppn);
-
-    int group_size;
-    MPI_Comm_size(comm->group_comm, &group_size);
-    printf("group size %d\n", group_size);
 
     MPIL_Request* request;
     init_request(&request);
@@ -62,7 +57,7 @@ int allreduce_rma_hierarchical_init_helper(const void* sendbuf,
     request->count = count;
     request->datatype = datatype;
     request->op = op;
-    request->local_comm = comm->local_comm;
+    MPI_Comm_dup(comm->local_comm, &(request->local_comm));
 
     request->start_function = allreduce_rma_hierarchical_start;
     request->wait_function  = allreduce_rma_hierarchical_wait;

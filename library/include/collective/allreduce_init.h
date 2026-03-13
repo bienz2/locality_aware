@@ -25,6 +25,8 @@ int allreduce_rma_hierarchical_start(MPIL_Request* request);
 int allreduce_rma_hierarchical_wait(MPIL_Request* request, MPI_Status* status);
 int allreduce_rma_earlybird_start(MPIL_Request* request);
 int allreduce_rma_earlybird_wait(MPIL_Request* request, MPI_Status* status);
+int allreduce_rma_hierarchical_earlybird_start(MPIL_Request* request);
+int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status* status);
 
 /** @brief Function pointer to allreduce implemenation
  * @details 
@@ -203,6 +205,28 @@ int allreduce_rma_earlybird_init(const void* sendbuf,
                                  MPIL_Info* info,
                                  MPIL_Request** req_ptr);
 
+/** @brief Call smarter persistent RMA allreduce, which fences,
+ * accumulates on-node, reduces between nodes, and gets on node.
+ * Also uses earlybird strategies, extra buffer, to avoid 
+ * fence during MPIL_Start
+ * @param [in] sendbuf buffer containing data to reduce
+ * @param [out] recvbuf buffer to receive and reduce all messages
+ * @param [in] count int number of items to be reduced
+ * @param [in] datatype MPI_Datatype
+ * @param [in] op MPI_Op
+ * @param [in] comm MPIL_Comm used for context
+ * @param [in] info MPIL_Info used for hints
+ * @param [out] req_ptr MPIL_Request** returns pointer to persistent request
+ **/
+int allreduce_rma_hierarchical_earlybird_init(const void* sendbuf,
+                                 void* recvbuf,
+                                 int count,
+                                 MPI_Datatype datatype,
+                                 MPI_Op op,
+                                 MPIL_Comm* comm,
+                                 MPIL_Info* info,
+                                 MPIL_Request** req_ptr);
+
 
 
 /** @brief Calls underlying PMPI_Allreduce implementation **/
@@ -295,6 +319,18 @@ int allreduce_rma_hierarchical_init_helper(
                              MPIL_Free_ftn free_ftn);
 
 int allreduce_rma_earlybird_init_helper(
+                             const void* sendbuf,
+                             void* recvbuf,
+                             int count,
+                             MPI_Datatype datatype,
+                             MPI_Op op,
+                             MPIL_Comm* comm,
+                             MPIL_Info* info,
+                             MPIL_Request** req_ptr,
+                             MPIL_Alloc_ftn alloc_ftn,
+                             MPIL_Free_ftn free_ftn);
+
+int allreduce_rma_hierarchical_earlybird_init_helper(
                              const void* sendbuf,
                              void* recvbuf,
                              int count,

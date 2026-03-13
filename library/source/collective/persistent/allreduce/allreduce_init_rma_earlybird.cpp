@@ -83,10 +83,11 @@ if (request->gpu_sendbuf)
 }
 #endif
 
-    for (int i = 0; i < request->n_puts; i++)
-        MPI_Accumulate(request->sendbuf, request->count, request->datatype, 
-                i, 0, request->count, request->datatype, request->op, 
-                request->win);
+    // TODO : need to be able to tune which rank is leader, 
+    // want it to be one with less work
+    MPI_Accumulate(request->sendbuf, request->count, request->datatype, 
+            0, 0, request->count, request->datatype, request->op, 
+            request->win);
 
 
 
@@ -95,13 +96,14 @@ if (request->gpu_sendbuf)
 
 int allreduce_rma_earlybird_wait(MPIL_Request* request, MPI_Status* status)   
 {
+    MPI_Win_fence(0, request->win);
+    MPI_Get(request->recvbuf, request->count, request->datatype, 
+            0, 0, request->count, request->datatype, request->win);
     MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOSUCCEED, request->win);
 
     int type_size;
     MPI_Type_size(request->datatype, &type_size);
-    memcpy(request->recvbuf, request->win_array, request->count*type_size);
     memset(request->win_array, 0, request->count*type_size);
-
     MPI_Win_fence(MPI_MODE_NOSTORE|MPI_MODE_NOPRECEDE, request->win);
 
 #if defined(GPU)
