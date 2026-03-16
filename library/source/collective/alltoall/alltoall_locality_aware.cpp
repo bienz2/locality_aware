@@ -28,25 +28,18 @@ int alltoall_locality_aware(alltoall_helper_ftn f,
     if (groups_per_node > 1)
     {
         if (ppn < groups_per_node)
-        {
             groups_per_node = ppn;
-        }
-        int procs_per_group = ppn / groups_per_node;
 
         if (comm->leader_comm != MPI_COMM_NULL)
         {
             int ppg;
             MPI_Comm_size(comm->leader_comm, &ppg);
-            if (ppg != procs_per_group)
-            {
+            if (ppg != ppn / groups_per_node)
                 MPI_Comm_free(&(comm->leader_comm));
-            }
         }
 
         if (comm->leader_comm == MPI_COMM_NULL)
-        {
-            MPIL_Comm_leader_init(comm, procs_per_group);
-        }
+            MPIL_Comm_leader_init(comm, groups_per_node);
 
         local_comm = comm->leader_comm;
         group_comm = comm->leader_group_comm;

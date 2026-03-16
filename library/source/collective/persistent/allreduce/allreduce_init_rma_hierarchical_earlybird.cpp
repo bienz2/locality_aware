@@ -87,15 +87,18 @@ int allreduce_rma_multileader_earlybird_init_helper(const void* sendbuf,
     MPI_Comm_rank(comm->local_comm, &local_rank);
     MPI_Comm_size(comm->local_comm, &ppn);
 
-    if (comm->leader_comm == MPI_COMM_NULL)
-    {
-        int num_leaders_per_node = 4;
-        if (ppn < num_leaders_per_node)
-        {
-            num_leaders_per_node = ppn;
-        }
-        MPIL_Comm_leader_init(comm, ppn / num_leaders_per_node);
+    int num_leaders = 4;
+    if (ppn < num_leaders)
+        num_leaders = ppn;
+    if (comm->leader_comm != MPI_COMM_NULL)
+    {   
+        int ppl;
+        MPI_Comm_size(comm->leader_comm, &ppl);
+        if (ppn / num_leaders != ppl)
+            MPIL_Comm_leader_free(comm);
     }
+    if (comm->leader_comm == MPI_COMM_NULL)
+        MPIL_Comm_leader_init(comm, num_leaders);
 
     int tag;
     MPIL_Comm_tag(comm, &tag);

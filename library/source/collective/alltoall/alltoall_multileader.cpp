@@ -34,10 +34,7 @@ int alltoall_multileader(alltoall_helper_ftn f,
     if (n_leaders > 1)
     {
         if (ppn < n_leaders)
-        {
             n_leaders = ppn;
-        }
-        int procs_per_leader = ppn / n_leaders;
 
         // If leader comm exists but with wrong number of leaders per node,
         // free the stale communicator
@@ -45,17 +42,13 @@ int alltoall_multileader(alltoall_helper_ftn f,
         {
             int ppl;
             MPI_Comm_size(comm->leader_comm, &ppl);
-            if (ppl != procs_per_leader)
-            {
+            if (ppl != ppn / n_leaders)
                 MPI_Comm_free(&comm->leader_comm);
-            }
         }
 
         // If leader comm does not exist, create it
         if (comm->leader_comm == MPI_COMM_NULL)
-        {
-            MPIL_Comm_leader_init(comm, procs_per_leader);
-        }
+            MPIL_Comm_leader_init(comm, n_leaders);
 
         local_comm = comm->leader_comm;
         group_comm = comm->leader_group_comm;
