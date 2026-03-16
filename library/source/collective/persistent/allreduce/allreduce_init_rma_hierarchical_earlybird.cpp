@@ -136,6 +136,7 @@ int allreduce_rma_hierarchical_earlybird_init_core(const void* sendbuf,
                 local_comm,
                 &(request->win_array),
                 &(request->win));
+    request->win_alloc = 1;
 
     request->sendbuf = sendbuf;
     request->recvbuf = recvbuf;
