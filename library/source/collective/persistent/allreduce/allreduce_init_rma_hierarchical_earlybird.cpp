@@ -133,7 +133,9 @@ int allreduce_rma_hierarchical_earlybird_init_core(const void* sendbuf,
     int type_size;
     MPI_Type_size(datatype, &type_size);
 
-    MPI_Win_allocate_shared(count*type_size,
+    int bytes = 0;
+    if (local_rank == 0) bytes = ppn * count * type_size;
+    MPI_Win_allocate_shared(bytes,
                 type_size,
                 MPI_INFO_NULL,
                 local_comm,
@@ -158,7 +160,6 @@ int allreduce_rma_hierarchical_earlybird_init_core(const void* sendbuf,
 
     *req_ptr = request;   
 
-    memset(request->win_array, 0, request->count*type_size);
     MPI_Win_fence(0, request->win);
 
     return MPI_SUCCESS;
@@ -168,12 +169,15 @@ int allreduce_rma_hierarchical_earlybird_start(MPIL_Request* request)
 {
     if (request == NULL)
         return 0;
-int type_size;
-MPI_Type_size(request->datatype, &type_size);
+
+    int local_rank;
+    MPI_Comm_rank(request->local_comm, &local_rank);
 
 #if defined(GPU)
 if (request->gpu_sendbuf)
 {
+    int type_size;
+    MPI_Type_size(request->datatype, &type_size);
 #if defined(APU)
     memcpy(request->tmp_gpubuf, request->gpu_sendbuf, request->count*type_size);
 #else
@@ -185,19 +189,31 @@ if (request->gpu_sendbuf)
 #endif
 
 
-    MPI_Accumulate(request->sendbuf, request->count, request->datatype, 
-            0, 0, request->count, request->datatype, request->op, 
-            request->win);
+    MPI_Put(request->sendbuf, request->count, request->datatype, 
+            0, local_rank * request->count, request->count, 
+            request->datatype, request->win);
 
     return MPI_SUCCESS;
 }
 
 int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status* status)   
 {
+    int local_rank, ppn;
+    MPI_Comm_rank(request->local_comm, &local_rank);
+    MPI_Comm_size(request->local_comm, &ppn);
+
     int type_size;
     MPI_Type_size(request->datatype, &type_size);
 
     MPI_Win_fence(0, request->win);
+
+    if (local_rank == 0)
+    {
+        memcpy(request->recvbuf, request->win_array, request->count * type_size);
+        for (int i = 1; i < ppn; i++)
+            MPI_Reduce_local((char*)request->win_array + (i * request->count * type_size),
+                    request->recvbuf, request->count, request->datatype, request->op);
+    }
 
     // Start Recursive Doubling Allreduce among leaders
     if (request->local_L_request)
