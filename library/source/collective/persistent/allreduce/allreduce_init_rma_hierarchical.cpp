@@ -157,7 +157,7 @@ int allreduce_rma_hierarchical_init_core(const void* sendbuf,
     
 
     if (local_rank == 0)
-        allreduce_recursive_doubling_init_core(request->win_array, recvbuf, count, datatype,
+        allreduce_recursive_doubling_init_core(MPI_IN_PLACE, recvbuf, count, datatype,
                 op, group_comm, tag, info, &(request->local_L_request), alloc_ftn, free_ftn);
 
     *req_ptr = request;    
