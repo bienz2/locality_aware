@@ -130,8 +130,13 @@ int allreduce_rma_hierarchical_earlybird_init_core(const void* sendbuf,
     int type_size;
     MPI_Type_size(datatype, &type_size);
 
-    MPI_Alloc_mem(count*type_size, MPI_INFO_NULL, &(request->win_array));
-    MPIL_Request_win_init(request, request->win_array, count*type_size, 1, local_comm);
+    MPI_Win_allocate_shared(count*type_size,
+                type_size,
+                MPI_INFO_NULL,
+                local_comm,
+                &(request->win_array),
+                &(request->win));
+
     request->sendbuf = sendbuf;
     request->recvbuf = recvbuf;
     request->n_puts = ppn;

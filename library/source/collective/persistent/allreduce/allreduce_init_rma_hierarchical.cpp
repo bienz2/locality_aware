@@ -129,7 +129,15 @@ int allreduce_rma_hierarchical_init_core(const void* sendbuf,
     int type_size;
     MPI_Type_size(datatype, &type_size);
 
-    MPIL_Request_win_init(request, recvbuf, count*type_size, 1, local_comm);
+    MPIL_Request_win_init(request, recvbuf, count, 1, local_comm);
+    MPI_Win_allocate_shared(count*type_size,
+                type_size,
+                MPI_INFO_NULL,
+                local_comm,
+                &(request->win_array),
+                &(request->win));
+    request->win_alloc = 1;
+
     request->sendbuf = sendbuf;
     request->recvbuf = recvbuf;
     request->n_puts = ppn;
@@ -144,7 +152,7 @@ int allreduce_rma_hierarchical_init_core(const void* sendbuf,
     
 
     if (local_rank == 0)
-        allreduce_recursive_doubling_init_core(MPI_IN_PLACE, recvbuf, count, datatype,
+        allreduce_recursive_doubling_init_core(request->win_array, recvbuf, count, datatype,
                 op, group_comm, tag, info, &(request->local_L_request), alloc_ftn, free_ftn);
 
     *req_ptr = request;    

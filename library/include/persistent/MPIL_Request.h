@@ -86,6 +86,8 @@ struct _MPIL_Request
     int win_bytes;
     /**@brief Size of the datatype in win_array in bytes**/
     int win_type_bytes;
+    /** @brief Indicates whether win_array was allocated as part of Win allocate*/
+    int win_alloc;
     /** @brief number of puts **/
     int n_puts;
     
