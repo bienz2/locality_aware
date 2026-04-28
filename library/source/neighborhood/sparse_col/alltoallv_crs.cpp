@@ -119,6 +119,118 @@ int alltoallv_crs_personalized(const int send_nnz,
     return MPI_SUCCESS;
 }
 
+// Dynamic communication, but can assume communication graph is dense
+// Example: local communication where sizes are unknown, but likely
+// all local ranks communication with all other local ranks
+int alltoallv_crs_personalized_dense(const int send_nnz,
+                               const int send_size,
+                               const int* dest,
+                               const int* sendcounts,
+                               const int* sdispls,
+                               MPI_Datatype sendtype,
+                               const void* sendvals,
+                               int* recv_nnz,
+                               int* recv_size,
+                               int** src_ptr,
+                               int** recvcounts_ptr,
+                               int** rdispls_ptr,
+                               MPI_Datatype recvtype,
+                               void** recvvals_ptr,
+                               MPIL_Info* xinfo,
+                               MPIL_Comm* comm)
+{
+    int rank, num_procs;
+    MPI_Comm_rank(comm->global_comm, &rank);
+    MPI_Comm_size(comm->global_comm, &num_procs);
+
+    MPI_Status recv_status;
+    int proc, ctr, count;
+    int tag;
+    get_tag(comm, &tag);
+
+    int send_bytes, recv_bytes;
+    MPI_Type_size(sendtype, &send_bytes);
+    MPI_Type_size(recvtype, &recv_bytes);
+
+    // Allgather to get per-process size
+    std::vector<int> send_counts(num_procs, 0);
+    std::vector<int> recv_counts(num_procs, 0);
+    std::vector<int> sdipsls_ext(num_procs+1);
+    std::vector<int> rdispls_ext(num_procs+1);
+    for (int i = 0; i < send_nnz; i++)
+    {
+        send_counts[dest[i]] = sendcounts[i];
+    }
+    MPI_Alltoall(send_counts.data(), 1, MPI_INT, recv_counts.data(), 1, MPI_INT, 
+            comm->global_comm);
+    *recv_size = 0;
+    *recv_nnz = 0;
+    for (int i = 0; i < num_procs; i++)
+    {
+        if (recv_counts[i])
+        {
+            (*recv_nnz)++;
+            *recv_size += recv_counts[i];
+        }
+    }
+    MPIL_Alloc((void**)recvvals_ptr, *recv_size * recv_bytes);
+    MPIL_Alloc((void**)src_ptr, *recv_nnz * sizeof(int));
+    MPIL_Alloc((void**)recvcounts_ptr, *recv_nnz * sizeof(int));
+    MPIL_Alloc((void**)rdispls_ptr, (*recv_nnz+1) * sizeof(int));
+    int* src = *src_ptr;
+    int* recvcounts = *recvcounts_ptr;
+    int* rdispls = *rdispls_ptr;
+    rdispls[0] = 0;
+    count = 0;
+    for (int i = 0; i < num_procs; i++)
+    {
+        if (recv_counts[i])
+        {
+            src[count] = i;
+            recvcounts[count] = recv_counts[i];
+            rdispls[count+1] = rdispls[count] + recv_counts[i];
+            count++;
+        }
+    }
+
+    std::vector<MPI_Request> requests;
+    if (send_nnz + *recv_nnz)
+        requests.resize(send_nnz + *recv_nnz);
+
+    char* send_buffer = (char*)sendvals;
+    char* recv_buffer = (char*)*recvvals_ptr;
+    for (int i = 0; i < send_nnz; i++)
+    {
+        proc = dest[i];
+        MPI_Isend(&(send_buffer[sdispls[i] * send_bytes]),
+                  sendcounts[i] * send_bytes,
+                  MPI_BYTE,
+                  proc,
+                  tag,
+                  comm->global_comm,
+                  &(requests[i]));
+    }
+    for (int i = 0; i < *recv_nnz; i++)
+    {
+        proc = src[i];
+        MPI_Irecv(&(recv_buffer[rdispls[i] * recv_bytes]),
+                  recvcounts[i] * recv_bytes,
+                  MPI_BYTE,
+                  proc,
+                  tag,
+                  comm->global_comm,
+                  &(requests[send_nnz + i]));
+    }
+
+    if (send_nnz + *recv_nnz)
+    {
+        MPI_Waitall(send_nnz + *recv_nnz, requests.data(), MPI_STATUSES_IGNORE);
+    }
+
+    return MPI_SUCCESS;
+}
+
+
 int alltoallv_crs_nonblocking(const int send_nnz,
                               const int send_size,
                               const int* dest,

@@ -579,7 +579,7 @@ void form_local_comm(const int orig_num_sends,
 
     int n_recvs, s_recvs;
     int *src, *recvcounts, *rdispls, *recv_buf;
-    alltoallv_crs_personalized(send_data->num_msgs,
+    alltoallv_crs_personalized_dense(send_data->num_msgs,
                        send_data->size_msgs,
                        send_data->procs,
                        send_data->counts,

@@ -135,6 +135,42 @@ void test_matrix(const char* filename)
     MPIL_Free(rdispls);
     MPIL_Free(recvvals);
 
+    /* TEST PERSONALIZED DENSE VERSION */
+    s_recvs = -1;
+    MPIL_Set_alltoallv_crs(ALLTOALLV_CRS_PERSONALIZED_DENSE);
+    MPIL_Alltoallv_crs(A.recv_comm.n_msgs,
+                       A.recv_comm.size_msgs,
+                       A.recv_comm.procs.data(),
+                       A.recv_comm.counts.data(),
+                       A.recv_comm.ptr.data(),
+                       MPI_LONG,
+                       A.off_proc_columns.data(),
+                       &n_recvs,
+                       &s_recvs,
+                       &src,
+                       &recvcounts,
+                       &rdispls,
+                       MPI_LONG,
+                       (void**)&recvvals,
+                       xinfo,
+                       xcomm);
+    compare_alltoallv_crs_results(n_recvs,
+                                  A.send_comm.n_msgs,
+                                  s_recvs,
+                                  A.send_comm.size_msgs,
+                                  src,
+                                  proc_counts,
+                                  recvcounts,
+                                  proc_displs,
+                                  A.send_comm.idx,
+                                  rdispls,
+                                  recvvals,
+                                  A.first_col);
+    MPIL_Free(src);
+    MPIL_Free(recvcounts);
+    MPIL_Free(rdispls);
+    MPIL_Free(recvvals);
+
     /* TEST NONBLOCKING VERSION */
     s_recvs = -1;
     MPIL_Set_alltoallv_crs(ALLTOALLV_CRS_NONBLOCKING);
