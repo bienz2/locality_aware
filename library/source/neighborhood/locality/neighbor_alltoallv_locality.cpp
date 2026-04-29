@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 #include <vector>
 #include <numeric>
 #include "communicator/MPIL_Comm.hpp"
@@ -188,12 +189,23 @@ int neighbor_alltoallv_locality(const void* sendbuf,
 
     std::vector<char> agg_buf(send_size * send_bytes);  // FIX: use send_size computed above
 
-    for (int i = 0; i < topo->outdegree; i++) {
+    // Sort destinations by local_proc so packing order matches the ascending-rank
+    // read order used in step 5 (alltoallv_crs_personalized_dense returns src in
+    // ascending rank order).
+    std::vector<int> dest_order(topo->outdegree);
+    std::iota(dest_order.begin(), dest_order.end(), 0);
+    std::sort(dest_order.begin(), dest_order.end(), [&](int a, int b) {
+        return get_local_proc(comm, topo->destinations[a])
+             < get_local_proc(comm, topo->destinations[b]);
+    });
+
+    for (int ii = 0; ii < topo->outdegree; ii++) {
+        int i = dest_order[ii];
         node = get_node(comm, topo->destinations[i]);
         idx = node_idx[node];
         memcpy(&agg_buf[(node_displs[idx] + node_sizes[idx]) * send_bytes],
                &send_buffer[sdispls[i] * send_bytes],
-               sendcounts[i] * send_bytes);  // FIX: & for address-of, not array subscript
+               sendcounts[i] * send_bytes);
         node_sizes[idx] += sendcounts[i];
     }
 
