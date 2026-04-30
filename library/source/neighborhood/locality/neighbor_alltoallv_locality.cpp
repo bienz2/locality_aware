@@ -257,6 +257,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     std::vector<int> final_rdispls(ppn+1);
     final_rdispls[0] = 0;
     recv_requests.resize(ppn);
+    int n_recvs = 0;
     ctr = 0;
     for (int i = 0; i < ppn; i++)
     {
@@ -265,14 +266,17 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         {
             size += local_rank_recv_pairs[j].second;
         }
-        MPI_Irecv(&local_recvbuf[ctr*recv_bytes],
-                size,
-                recvtype,
-                i,
-                tag,
-                comm->local_comm,
-                &recv_requests[i]);
-        ctr += size;
+        if (size)
+        {
+            MPI_Irecv(&local_recvbuf[ctr*recv_bytes],
+                    size,
+                    recvtype,
+                    i,
+                    tag,
+                    comm->local_comm,
+                    &recv_requests[n_recvs++]);
+            ctr += size;
+        }
         final_rdispls[i+1] = ctr;
     }
 
@@ -307,7 +311,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         ctr = next_ctr;
     }
 
-    MPI_Waitall(ppn, recv_requests.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall(n_recvs, recv_requests.data(), MPI_STATUSES_IGNORE);
     MPI_Waitall(local_rank_send_num, send_requests.data(), MPI_STATUSES_IGNORE);
 
     /*********************************************************
