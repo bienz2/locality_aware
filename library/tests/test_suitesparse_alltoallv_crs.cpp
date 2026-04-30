@@ -130,6 +130,14 @@ void test_matrix(const char* filename)
                                   rdispls,
                                   recvvals,
                                   A.first_col);
+    for (int i = 0; i < n_recvs; i++)
+    {
+        src[i] = 0;
+        recvcounts[i] = 0;
+        rdispls[i+1] = 0;
+    }
+    for (int i = 0; i < s_recvs; i++)
+        recvvals[i] = 0;
     MPIL_Free(src);
     MPIL_Free(recvcounts);
     MPIL_Free(rdispls);
@@ -166,6 +174,14 @@ void test_matrix(const char* filename)
                                   rdispls,
                                   recvvals,
                                   A.first_col);
+    for (int i = 0; i < n_recvs; i++)
+    {
+        src[i] = 0;
+        recvcounts[i] = 0;
+        rdispls[i+1] = 0;
+    }
+    for (int i = 0; i < s_recvs; i++)
+        recvvals[i] = 0;
     MPIL_Free(src);
     MPIL_Free(recvcounts);
     MPIL_Free(rdispls);
@@ -202,6 +218,15 @@ void test_matrix(const char* filename)
                                   rdispls,
                                   recvvals,
                                   A.first_col);
+    for (int i = 0; i < n_recvs; i++)
+    {
+        src[i] = 0;
+        recvcounts[i] = 0;
+        rdispls[i+1] = 0;
+    }
+    for (int i = 0; i < s_recvs; i++)
+        recvvals[i] = 0;
+
     MPIL_Free(src);
     MPIL_Free(recvcounts);
     MPIL_Free(rdispls);
@@ -238,6 +263,14 @@ void test_matrix(const char* filename)
                                   rdispls,
                                   recvvals,
                                   A.first_col);
+    for (int i = 0; i < n_recvs; i++)
+    {
+        src[i] = 0;
+        recvcounts[i] = 0;
+        rdispls[i+1] = 0;
+    }
+    for (int i = 0; i < s_recvs; i++)
+        recvvals[i] = 0;
     MPIL_Free(src);
     MPIL_Free(recvcounts);
     MPIL_Free(rdispls);
@@ -274,6 +307,14 @@ void test_matrix(const char* filename)
                                   rdispls,
                                   recvvals,
                                   A.first_col);
+    for (int i = 0; i < n_recvs; i++)
+    {
+        src[i] = 0;
+        recvcounts[i] = 0;
+        rdispls[i+1] = 0;
+    }
+    for (int i = 0; i < s_recvs; i++)
+        recvvals[i] = 0;
     MPIL_Free(src);
     MPIL_Free(recvcounts);
     MPIL_Free(rdispls);

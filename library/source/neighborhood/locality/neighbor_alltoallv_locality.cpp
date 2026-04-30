@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <algorithm>
 #include <vector>
 #include <numeric>
 #include "communicator/MPIL_Comm.hpp"
@@ -23,269 +24,313 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         MPIL_Topo* topo, 
         MPIL_Comm* comm)
 {
+    // If local communicator doesn't exist yet, create it
     if (comm->local_comm == MPI_COMM_NULL) 
     {
         MPIL_Comm_topo_init(comm);
     }
 
-    int num_procs;
+    // Get rank/size for MPI communicators
+    int num_procs, rank;
     int local_rank, ppn;
     int num_nodes;
+    MPI_Comm_rank(comm->global_comm, &rank);
     MPI_Comm_size(comm->global_comm, &num_procs);
     MPI_Comm_rank(comm->local_comm, &local_rank);
     MPI_Comm_size(comm->local_comm, &ppn);
     MPI_Comm_size(comm->group_comm, &num_nodes);
 
-    int send_nnz = topo->outdegree;
-    int send_size = 0;
-    for (int i = 0; i < send_nnz; i++) 
-    {
-        send_size += sendcounts[i];
-    }
-    int recv_nnz = topo->indegree;  
-
     char* send_buffer = (char*)sendbuf;
     char* recv_buffer = (char*)recvbuf;
+    
+    int send_size = 0;
+    for (int i = 0; i < topo->outdegree; i++) 
+        send_size += sendcounts[i];
+    int recv_size = 0;
+    for (int i = 0; i < topo->indegree; i++)
+        recv_size += recvcounts[i];
 
     int send_bytes, recv_bytes;
     MPI_Type_size(sendtype, &send_bytes);
     MPI_Type_size(recvtype, &recv_bytes);
 
+    int tag;
+    MPIL_Comm_tag(comm, &tag);
+
     MPIL_Info* xinfo;
     MPIL_Info_init(&xinfo);
 
-    // 1. Find inter-node receive sizes per-process
-    int local_proc, node, size, idx;
-    std::vector<int> metadata;  
-    std::vector<int> metadata_ctr(ppn, 0);
-    std::vector<int> metadata_displs(ppn + 1);
-    std::vector<int> dest_l(ppn);
-    std::iota(dest_l.begin(), dest_l.end(), 0);
+    /*********************************************************
+     ***** 1. Find inter-node receive sizes per-process  *****
+     *********************************************************/
+    int local_proc, node, size, idx, agg_idx;
+    std::vector<std::pair<int,int>> local_rank_recv_pairs;
+    std::vector<int> local_rank_recvcounts(ppn, 0);
+    std::vector<int> local_rank_rdispls(ppn+1);
+    std::vector<int> local_rank_src(ppn);
+    std::iota(local_rank_src.begin(), local_rank_src.end(), 0);
 
-    for (int i = 0; i < topo->indegree; i++) 
+    for (int i = 0; i < topo->indegree; i++)
     {
         local_proc = get_local_proc(comm, topo->sources[i]);
-        metadata_ctr[local_proc] += 2;  
+        local_rank_recvcounts[local_proc]++;
     }
-
-    metadata_displs[0] = 0;
-    for (int i = 0; i < ppn; i++) 
+    local_rank_rdispls[0] = 0;
+    for (int i = 0; i < ppn; i++)
     {
-        metadata_displs[i + 1] = metadata_displs[i] + metadata_ctr[i];
-        metadata_ctr[i] = 0;
+        local_rank_rdispls[i+1] = local_rank_rdispls[i] + local_rank_counts[i];
+        local_rank_counts[i] = 0; // reuse this when filling node_and_size array
     }
-
-    int total_size = metadata_displs[ppn];  
-    if (total_size) metadata.resize(total_size);
+    int local_rank_recv_size = local_rank_rdispls[ppn];
+    if (local_rank_recv_size)
+        local_rank_recv_node_and_size.resize(local_rank_recv_size);
 
     for (int i = 0; i < topo->indegree; i++) 
     {
         node = get_node(comm, topo->sources[i]);
         local_proc = get_local_proc(comm, topo->sources[i]);
-        size = recvcounts[i];
-        idx = metadata_displs[local_proc] + metadata_ctr[local_proc];
-        metadata[idx]     = node;
-        metadata[idx + 1] = size;
-        metadata_ctr[local_proc] += 2;
-    }
-    for (int i = 0; i < ppn; i++) 
-    {
-        metadata_ctr[i] = metadata_displs[i + 1] - metadata_displs[i];
+        idx = local_rank_rdispls[local_proc] + local_rank_recvcounts[local_proc];
+        local_rank_recv_node_and_size[idx] = {node, recvcounts[i]};
+        local_rank_recvcounts[local_proc]++;
     }
 
     MPIL_Comm* local_lcomm;
     MPIL_Comm_init(&local_lcomm, comm->local_comm);
 
     // Dynamic communication to find aggregated recv sizes
-    int agg_recv_nnz, agg_recv_size;
-    int *src_tmp, *recvcounts_tmp, *rdispls_tmp;
-    char* recvvals_tmp;
+    int local_rank_send_num, local_rank_send_size;
+    int *local_rank_dest, *local_rank_sendcounts, *local_rank_sdispls;
+    std::pair<int,int>* local_rank_send_pairs;
     alltoallv_crs_personalized_dense(ppn, 
             total_size, 
-            dest_l.data(),
-            metadata_ctr.data(),
-            metadata_displs.data(),
-            MPI_INT,
-            metadata.data(),
-            &agg_recv_nnz, 
-            &agg_recv_size,
-            &src_tmp, 
-            &recvcounts_tmp,
-            &rdispls_tmp,
-            MPI_INT, 
-            (void**)&recvvals_tmp, 
+            local_rank_src.data(),
+            local_rank_recvcounts.data(),
+            local_rank_rdispls.data(),
+            MPI_INT_INT,
+            local_rank_recv_pairs.data(),
+            &local_rank_send_num, 
+            &local_rank_send_size,
+            &local_rank_dest, 
+            &local_rank_sendcounts,
+            &local_rank_sdispls,
+            MPI_INT_INT, 
+            (void**)&local_rank_send_pairs, 
             xinfo, 
             local_lcomm);
-    agg_recv_size /= 2;
-    for (int i = 0; i < agg_recv_nnz; i++)
+
+    /*********************************************************
+     ***** 2. Aggregated Inter-Node Receives             *****
+     *********************************************************/
+    std::vector<int> recv_node_idx(num_nodes, -1);
+    int agg_num_recvs = 0;
+    std::vector<int> agg_src;
+    std::vector<int> agg_recvcounts;
+
+    for (int i = 0; i < local_rank_send_size; i++)
     {
-        recvcounts_tmp[i] /= 2;
-        rdispls_tmp[i + 1] /= 2;
-    }
-
-    // 2. Aggregated Recvs: 
-    std::vector<int> agg_node_idx(num_nodes, -1);
-    int agg_node_recvs = 0;
-    std::vector<int> agg_node_list;
-    std::vector<int> agg_node_sizes;
-
-    int* node_and_size = (int*)recvvals_tmp;
-    for (int i = 0; i < agg_recv_size; i++) 
-    {
-        node = node_and_size[2 * i];
-        size = node_and_size[2 * i + 1];
-        if (agg_node_idx[node] == -1) {
-            agg_node_idx[node] = agg_node_recvs;
-            agg_node_list.push_back(node);
-            agg_node_sizes.push_back(0);
-            agg_node_recvs++;
-        }
-        agg_node_sizes[agg_node_idx[node]] += size;
-    }
-    std::vector<int> agg_node_displs(agg_node_recvs + 1);
-    agg_node_displs[0] = 0;
-    for (int i = 0; i < agg_node_recvs; i++) 
-    {
-        agg_node_displs[i + 1] = agg_node_displs[i] + agg_node_sizes[i];
-    }
-
-    int total_recv_size = agg_node_displs[agg_node_recvs];
-    std::vector<char> agg_recv_buf(total_recv_size * recv_bytes);
-
-    std::vector<MPI_Request> recv_requests(agg_node_recvs);
-    for (int i = 0; i < agg_node_recvs; i++)
-    {
-        node = agg_node_list[i];
-        int global_proc = get_global_proc(comm, node, local_rank);
-        MPI_Irecv(&agg_recv_buf[agg_node_displs[i] * recv_bytes],
-                  agg_node_sizes[i],
-                  recvtype, global_proc, 0, comm->global_comm, &recv_requests[i]);
-    }
-
-
-    // 3. Aggregated Sends: one message per destination node
-    std::vector<int> node_idx(num_nodes, -1);  // FIX: init to -1 for "unseen" check
-    int node_sends = 0;
-    std::vector<int> node_list(topo->outdegree);
-    std::vector<int> node_sizes(topo->outdegree, 0);
-
-    for (int i = 0; i < topo->outdegree; i++) {
-        node = get_node(comm, topo->destinations[i]);
-        if (node_idx[node] == -1) {  // FIX: check -1 not node_sizes[node]==0
-            node_idx[node] = node_sends;
-            node_list[node_sends] = node;  // FIX: was node_list[num_sends]
-            node_sends++;
-        }
-        node_sizes[node_idx[node]] += sendcounts[i];
-    }
-
-    std::vector<int> node_displs(node_sends + 1);
-    node_displs[0] = 0;
-    for (int i = 0; i < node_sends; i++) {
-        node_displs[i + 1] = node_displs[i] + node_sizes[i];
-        node_sizes[i] = 0;
-    }
-
-    std::vector<char> agg_buf(send_size * send_bytes);  // FIX: use send_size computed above
-
-    for (int i = 0; i < topo->outdegree; i++) {
-        node = get_node(comm, topo->destinations[i]);
-        idx = node_idx[node];
-        memcpy(&agg_buf[(node_displs[idx] + node_sizes[idx]) * send_bytes],
-               &send_buffer[sdispls[i] * send_bytes],
-               sendcounts[i] * send_bytes);  // FIX: & for address-of, not array subscript
-        node_sizes[idx] += sendcounts[i];
-    }
-
-    // Post all sends
-    std::vector<MPI_Request> requests(node_sends);
-    for (int i = 0; i < node_sends; i++) {
-        node = node_list[i];
-        int global_proc = get_global_proc(comm, node, local_rank);
-        MPI_Isend(&agg_buf[node_displs[i] * send_bytes],
-                  node_displs[i + 1] - node_displs[i],
-                  sendtype, global_proc, 0, comm->global_comm, &requests[i]);
-    }
-
-    // 4. Wait for inter-messages to complete
-    MPI_Waitall(agg_node_recvs, recv_requests.data(), MPI_STATUSES_IGNORE);
-    MPI_Waitall(node_sends, requests.data(), MPI_STATUSES_IGNORE);
-
-
-    // 5. Redistribute aggregated recv data on-node
-
-    // Compute redist send counts (in elements) per local peer
-    std::vector<int> local_sendcounts(ppn, 0);
-    for (int i = 0; i < agg_recv_nnz; i++)
-    {
-        int local_proc  = src_tmp[i];
-        int idx  = rdispls_tmp[i];
-        int count = recvcounts_tmp[i];
-        int* node_and_size = (int*)recvvals_tmp + idx * 2;
-        for (int j = 0; j < count; j++)
-            local_sendcounts[local_proc] += node_and_size[2 * j + 1];
-    }
-    std::vector<int> local_sdispls(ppn + 1, 0);
-    for (int i = 0; i < ppn; i++)
-    {
-        local_sdispls[i + 1] = local_sdispls[i] + local_sendcounts[i];
-        local_sendcounts[i] = 0;
-    }
-    int local_size = local_sdispls[ppn];
-    std::vector<char> local_sendbuf(local_size * recv_bytes);
-
-    std::vector<int> node_ctr(agg_node_recvs, 0);
-    for (int i = 0; i < agg_recv_nnz; i++)
-    {
-        int local_proc = src_tmp[i];
-        int idx = rdispls_tmp[i];
-        int count = recvcounts_tmp[i];
-        int* node_and_size = (int*)recvvals_tmp + idx * 2;
-        for (int j = 0; j < count; j++)
+        node = local_rank_send_pairs[i][0];
+        if (recv_node_idx[node] == -1)
         {
-            node = node_and_size[2*j];
-            size = node_and_size[2*j+1];
-            idx = agg_node_idx[node];
-            memcpy(&local_sendbuf[(local_sdispls[local_proc] + local_sendcounts[local_proc]) * recv_bytes],
-                    &agg_recv_buf[(agg_node_displs[idx] + node_ctr[idx]) * recv_bytes],
-                    size * recv_bytes);
-            local_sendcounts[local_proc] += size;
-            node_ctr[idx] += size;
+            recv_node_idx[node] = agg_num_recvs++;
+            agg_src.push_back(node);
+            agg_recvcounts.push_back(0);
         }
+        agg_recvcounts[recv_node_idx[node]] += local_rank_send_pairs[i][1];
     }
-    std::vector<int> local_recvcounts(ppn, 0);
+
+    std::vector<int> agg_rdispls(agg_num_recvs+1);
+    agg_rdispls[0] = 0;
+    for (int i = 0; i < agg_num_recvs; i++)
+        agg_rdispls[i+1] = agg_rdispls[i] + agg_recvcounts[i];
+
+    int agg_recv_size = agg_rdispls[agg_num_recvs];
+    std::vector<char> agg_recvbuf;
+    if (agg_recv_size)
+        agg_recvbuf(agg_recv_size * recv_bytes);
+
+    std::vector<MPI_Request> recv_requests;
+    if (agg_num_recvs)
+        recv_requests.resize(agg_num_recvs);
+
+    for (int i = 0; i < agg_num_recvs; i++)
+    {
+        node = agg_src[i];
+        int global_proc = get_global_proc(comm, node, local_rank);
+        MPI_Irecv(&agg_recvbuf[agg_rdispls[i] * recv_bytes],
+                agg_recvcounts[i], recvtype,
+                global_proc, tag, comm->global_comm, &recv_requests[i]);
+    }
+
+
+    /*********************************************************
+     ***** 2. Aggregated Inter-Node Sends                *****
+     *********************************************************/
+    std::vector<int> send_node_idx(num_nodes, -1);
+    int agg_num_sends = 0;
+    std::vector<int> agg_dest;
+    std::vector<int> agg_sendcounts;
+
+    for (int i = 0; i < topo->outdegree; i++)
+    {
+        node = get_node(comm, topo->destinations[i]);
+        if (send_node_idx[node] == -1)
+        {
+            send_node_idx[node] = agg_num_sends++;
+            agg_dest.push_back(node);
+            agg_sendcounts.push_back(0);
+        }
+        agg_sendcounts[send_node_idx[node]] += sendcounts[i];
+    }
+
+    std::vector<int> agg_sdispls(agg_num_sends+1);
+    agg_sdispls[0] = 0;
+    for (int i = 0; i < agg_num_sends; i++)
+    {
+        agg_sdispls[i+1] = agg_sdispls[i] + agg_sendcounts[i];
+        agg_sendcounts[i] = 0 // reset to use during packing
+    }
+
+    std::vector<char> agg_sendbuf;
+    if (send_size)
+        agg_sendbuf.resize(send_size * send_bytes);
+
+    // Sort sends by local rank -- aggregating by node, 
+    // recvs assume ordered within by local rank of destination
+    std::vector<int> order(topo->outdegree);
+    std::iota(order.begin(), order.end(), 0);
+    std::sort(order.begin(), order.end(), 
+            [&](int a, int b)
+            {
+                return get_local_proc(comm, topo->destinations[a])
+                    < get_local_proc(com, topo->destinations[b]);
+            });
+
+    // Pack aggregated messages
+    for (int i = 0; i < topo->outdegree; i++)
+    {
+        idx = order[i];
+        node = get_node(comm, topo->destinations[i]);
+        agg_idx = send_node_idx[node];
+        memcpy(&agg_sendbuf[(agg_sdispls[idx] + agg_sendcounts[idx]) * send_bytes],
+                &send_buffer[sdispls[i] * send_bytes],
+                sendcounts[i] * send_bytes);
+        agg_sendcounts[i] += sendcounts[i];
+    }
+
+    // Send aggregated messages
+    std::vector<MPI_Request> send_requests(agg_num_sends);
+    for (int i = 0; i < agg_num_sends; i++)
+    {
+        node = agg_dest[i];
+        global_proc = get_global_proc(comm, node, local_rank);
+        MPI_Isend(&agg_sendbuf[agg_sdispls[i] * send_bytes],
+                agg_sendcounts[i],
+                sendtype,
+                global_proc, 
+                tag,
+                comm->global_comm,
+                &send_requests[i]);
+    }
+
+    /*********************************************************
+     ***** 4. Wait for Inter-Node Messages To Complete   *****
+     *********************************************************/
+    MPI_Waitall(agg_num_recvs, recv_requests.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall(agg_num_sends, send_requests.data(), MPI_STATUSES_IGNORE);
+
+
+    /*********************************************************
+     ***** 5. Redistribute Inter-Node Recvs Locally      *****
+     *********************************************************/
+    std::vector<int> local_sendcounts(ppn, 0);
+    std::vector<int> local_sdispls(ppn+1);
+    std::vector<char> local_sendbuf(local_rank_send_size*recv_bytes);
+
+    if (local_rank_recv_num)
+        recv_requests.resize(local_rank_recv_num);
+    ctr = 0;
+    for (int i = 0; i < local_rank_recv_num; i++)
+    {
+        local_proc = local_rank_src[i];
+        size = 0;
+        for (int j = local_rank_rdispls[i]; j < local_rank_rdispls[i+1]; j++)
+        {
+            size += local_rank_recv_pairs[j][1];
+        }
+        MPI_Irecv(&local_recvbuf[ctr*recv_bytes],
+                size,
+                recvtype,
+                local_proc,
+                tag,
+                comm->local_comm,
+                &recv_requests[i]);
+        ctr += size;
+    }
+
+
+    // Which local ranks do I send to
+    if (local_rank_send_num)
+        send_requests.resize(local_rank_send_num);
+    ctr = 0;
+    next_ctr = 0;
+    for (int i = 0; i < local_rank_send_num; i++)
+    {
+        local_proc = local_rank_dest[i];
+
+        for (int j = local_rank_sdispls[i]; j < local_rank_sdispls[i+1]; j++)
+        {
+            source_node = local_rank_send_pairs[j][0];
+            agg_idx = recv_node_idx[source_node];
+            size = local_rank_send_pairs[j][1];
+            memcpy(&local_sendbuf[next_ctr*recv_bytes],
+                    agg_recvbuf[agg_rdispls[agg_idx]*recv_bytes],
+                    size*recv_bytes);
+            agg_rdispls[agg_idx] += size;
+            next_ctr += size;
+        }
+        MPI_Isend(&local_sendbuf[ctr*recv_bytes],
+                next_ctr - ctr,
+                recvtype,
+                local_proc,
+                tag,
+                comm->local_comm,
+                &send_requests[i]);
+        ctr = next_ctr;
+    }
+
+    MPI_Waitall(local_rank_recv_num, recv_requests.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall(local_rank_send_num, send_requests.data(), MPI_STATUSES_IGNORE);
+
+    /*********************************************************
+     ***** 6. Unpack Final Local Receive                 *****
+     *********************************************************/
+    std::vector<int> local_proc_idx(ppn, -1);
+    for (int i = 0; i < local_rank_recv_num; i++)
+    {
+        local_proc = local_rank_src[i];
+        local_proc_idx[local_proc] = i;
+    }
+    ctr = 0;
     for (int i = 0; i < topo->indegree; i++)
     {
-        local_proc = get_local_proc(comm, topo->sources[i]);
-        local_recvcounts[local_proc] += recvcounts[i];
-    }
-    std::vector<int> local_rdispls(ppn+1);
-    local_rdispls[0] = 0;
-    for (int i = 0; i < ppn; i++)
-        local_rdispls[i+1] = local_rdispls[i] + local_recvcounts[i];
-    std::vector<char> local_recvbuf(local_rdispls[ppn] * recv_bytes);
-
-    MPI_Alltoallv(local_sendbuf.data(), local_sendcounts.data(), local_sdispls.data(), recvtype,
-            local_recvbuf.data(), local_recvcounts.data(), local_rdispls.data(), recvtype,
-            comm->local_comm);
-
-    std::vector<int> counter(ppn, 0);
-    for (int i = 0; i < topo->indegree; i++)
-    {
-        local_proc = get_local_proc(comm, topo->sources[i]);
-        memcpy(&recv_buffer[rdispls[i] * recv_bytes],
-                &local_recvbuf[(local_rdispls[local_proc] + counter[local_proc]) * recv_bytes],
+        global_proc = topo->sources[i];
+        local_proc = get_local_proc(comm, global_proc);
+        node = get_node(comm, global_proc);
+        idx = local_proc_idx[local_proc];
+        memcpy(&recvbuf[ctr * recv_bytes],
+                &local_recvbuf[local_rank_rdispls[idx] * recv_bytes],
                 recvcounts[i] * recv_bytes);
-        counter[local_proc] += recvcounts[i];
+        local_rank_rdispls[idx] += recvcounts[i];
+        ctr += recvcounts[i];
     }
-
 
     MPIL_Comm_free(&local_lcomm);
     MPIL_Info_free(&xinfo);
-    MPIL_Free(src_tmp);
-    MPIL_Free(recvcounts_tmp);
-    MPIL_Free(rdispls_tmp);
-    MPIL_Free(recvvals_tmp);
+
+    MPIL_Free(local_rank_dest);
+    MPIL_Free(local_rank_sendcounts);
+    MPIL_Free(local_rank_sdispls);
+    MPIL_Free(local_rank_send_pairs);
 
     return MPI_SUCCESS;
 }
