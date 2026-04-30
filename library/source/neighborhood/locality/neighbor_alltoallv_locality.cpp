@@ -244,9 +244,18 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     /*********************************************************
      ***** 5. Redistribute Inter-Node Recvs Locally      *****
      *********************************************************/
-    std::vector<char> local_sendbuf(local_rank_send_size*recv_bytes);
-    std::vector<char> local_recvbuf(local_rank_recv_size*recv_bytes);
+    int total_recv_size = 0;
+    for (int i = 0; i < topo->indegree; i++)
+        total_recv_size += recvcounts[i];
+    int total_send_size = 0;
+    for (int i = 0; i < local_rank_send_size; i++)
+        total_send_size += local_rank_send_pairs[i].second;
 
+    std::vector<char> local_sendbuf(total_send_size*recv_bytes);
+    std::vector<char> local_recvbuf(total_recv_size*recv_bytes);
+
+    std::vector<int> final_rdispls(ppn+1);
+    final_rdispls[0] = 0;
     recv_requests.resize(ppn);
     ctr = 0;
     for (int i = 0; i < ppn; i++)
@@ -264,14 +273,16 @@ int neighbor_alltoallv_locality(const void* sendbuf,
                 comm->local_comm,
                 &recv_requests[i]);
         ctr += size;
+        final_rdispls[i+1] = ctr;
     }
 
 
     // Which local ranks do I send to
-    send_requests.resize(ppn);
+    if (local_rank_send_num)
+        send_requests.resize(local_rank_send_num);
     ctr = 0;
     next_ctr = 0;
-    for (int i = 0; i < ppn; i++)
+    for (int i = 0; i < local_rank_send_num; i++)
     {
         local_proc = local_rank_dest[i];
 
@@ -297,7 +308,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     }
 
     MPI_Waitall(ppn, recv_requests.data(), MPI_STATUSES_IGNORE);
-    MPI_Waitall(ppn, send_requests.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall(local_rank_send_num, send_requests.data(), MPI_STATUSES_IGNORE);
 
     /*********************************************************
      ***** 6. Unpack Final Local Receive                 *****
@@ -316,9 +327,9 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         node = get_node(comm, global_proc);
         idx = local_proc_idx[local_proc];
         memcpy(&recv_buffer[ctr * recv_bytes],
-                &local_recvbuf[local_rank_rdispls[idx] * recv_bytes],
+                &local_recvbuf[final_rdispls[idx] * recv_bytes],
                 recvcounts[i] * recv_bytes);
-        local_rank_rdispls[idx] += recvcounts[i];
+        final_rdispls[idx] += recvcounts[i];
         ctr += recvcounts[i];
     }
 
