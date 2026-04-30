@@ -63,7 +63,9 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     /*********************************************************
      ***** 1. Find inter-node receive sizes per-process  *****
      *********************************************************/
-    int local_proc, node, size, idx, agg_idx;
+    int global_proc, local_proc, node;
+    int size, idx, agg_idx;
+    int ctr, next_ctr, source_node;
     std::vector<std::pair<int,int>> local_rank_recv_pairs;
     std::vector<int> local_rank_recvcounts(ppn, 0);
     std::vector<int> local_rank_rdispls(ppn+1);
@@ -78,19 +80,19 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     local_rank_rdispls[0] = 0;
     for (int i = 0; i < ppn; i++)
     {
-        local_rank_rdispls[i+1] = local_rank_rdispls[i] + local_rank_counts[i];
-        local_rank_counts[i] = 0; // reuse this when filling node_and_size array
+        local_rank_rdispls[i+1] = local_rank_rdispls[i] + local_rank_recvcounts[i];
+        local_rank_recvcounts[i] = 0; // reuse this when filling node_and_size array
     }
     int local_rank_recv_size = local_rank_rdispls[ppn];
     if (local_rank_recv_size)
-        local_rank_recv_node_and_size.resize(local_rank_recv_size);
+        local_rank_recv_pairs.resize(local_rank_recv_size);
 
     for (int i = 0; i < topo->indegree; i++) 
     {
         node = get_node(comm, topo->sources[i]);
         local_proc = get_local_proc(comm, topo->sources[i]);
         idx = local_rank_rdispls[local_proc] + local_rank_recvcounts[local_proc];
-        local_rank_recv_node_and_size[idx] = {node, recvcounts[i]};
+        local_rank_recv_pairs[idx] = {node, recvcounts[i]};
         local_rank_recvcounts[local_proc]++;
     }
 
@@ -102,18 +104,18 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     int *local_rank_dest, *local_rank_sendcounts, *local_rank_sdispls;
     std::pair<int,int>* local_rank_send_pairs;
     alltoallv_crs_personalized_dense(ppn, 
-            total_size, 
+            local_rank_recv_size, 
             local_rank_src.data(),
             local_rank_recvcounts.data(),
             local_rank_rdispls.data(),
-            MPI_INT_INT,
+            MPI_2INT,
             local_rank_recv_pairs.data(),
             &local_rank_send_num, 
             &local_rank_send_size,
             &local_rank_dest, 
             &local_rank_sendcounts,
             &local_rank_sdispls,
-            MPI_INT_INT, 
+            MPI_2INT, 
             (void**)&local_rank_send_pairs, 
             xinfo, 
             local_lcomm);
@@ -128,14 +130,14 @@ int neighbor_alltoallv_locality(const void* sendbuf,
 
     for (int i = 0; i < local_rank_send_size; i++)
     {
-        node = local_rank_send_pairs[i][0];
+        node = local_rank_send_pairs[i].first;
         if (recv_node_idx[node] == -1)
         {
             recv_node_idx[node] = agg_num_recvs++;
             agg_src.push_back(node);
             agg_recvcounts.push_back(0);
         }
-        agg_recvcounts[recv_node_idx[node]] += local_rank_send_pairs[i][1];
+        agg_recvcounts[recv_node_idx[node]] += local_rank_send_pairs[i].second;
     }
 
     std::vector<int> agg_rdispls(agg_num_recvs+1);
@@ -146,7 +148,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     int agg_recv_size = agg_rdispls[agg_num_recvs];
     std::vector<char> agg_recvbuf;
     if (agg_recv_size)
-        agg_recvbuf(agg_recv_size * recv_bytes);
+        agg_recvbuf.resize(agg_recv_size * recv_bytes);
 
     std::vector<MPI_Request> recv_requests;
     if (agg_num_recvs)
@@ -155,7 +157,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     for (int i = 0; i < agg_num_recvs; i++)
     {
         node = agg_src[i];
-        int global_proc = get_global_proc(comm, node, local_rank);
+        global_proc = get_global_proc(comm, node, local_rank);
         MPI_Irecv(&agg_recvbuf[agg_rdispls[i] * recv_bytes],
                 agg_recvcounts[i], recvtype,
                 global_proc, tag, comm->global_comm, &recv_requests[i]);
@@ -187,7 +189,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     for (int i = 0; i < agg_num_sends; i++)
     {
         agg_sdispls[i+1] = agg_sdispls[i] + agg_sendcounts[i];
-        agg_sendcounts[i] = 0 // reset to use during packing
+        agg_sendcounts[i] = 0; // reset to use during packing
     }
 
     std::vector<char> agg_sendbuf;
@@ -202,19 +204,19 @@ int neighbor_alltoallv_locality(const void* sendbuf,
             [&](int a, int b)
             {
                 return get_local_proc(comm, topo->destinations[a])
-                    < get_local_proc(com, topo->destinations[b]);
+                    < get_local_proc(comm, topo->destinations[b]);
             });
 
     // Pack aggregated messages
     for (int i = 0; i < topo->outdegree; i++)
     {
         idx = order[i];
-        node = get_node(comm, topo->destinations[i]);
+        node = get_node(comm, topo->destinations[idx]);
         agg_idx = send_node_idx[node];
-        memcpy(&agg_sendbuf[(agg_sdispls[idx] + agg_sendcounts[idx]) * send_bytes],
-                &send_buffer[sdispls[i] * send_bytes],
-                sendcounts[i] * send_bytes);
-        agg_sendcounts[i] += sendcounts[i];
+        memcpy(&agg_sendbuf[(agg_sdispls[agg_idx] + agg_sendcounts[agg_idx]) * send_bytes],
+                &send_buffer[sdispls[idx] * send_bytes],
+                sendcounts[idx] * send_bytes);
+        agg_sendcounts[agg_idx] += sendcounts[idx];
     }
 
     // Send aggregated messages
@@ -242,25 +244,22 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     /*********************************************************
      ***** 5. Redistribute Inter-Node Recvs Locally      *****
      *********************************************************/
-    std::vector<int> local_sendcounts(ppn, 0);
-    std::vector<int> local_sdispls(ppn+1);
     std::vector<char> local_sendbuf(local_rank_send_size*recv_bytes);
+    std::vector<char> local_recvbuf(local_rank_recv_size*recv_bytes);
 
-    if (local_rank_recv_num)
-        recv_requests.resize(local_rank_recv_num);
+    recv_requests.resize(ppn);
     ctr = 0;
-    for (int i = 0; i < local_rank_recv_num; i++)
+    for (int i = 0; i < ppn; i++)
     {
-        local_proc = local_rank_src[i];
         size = 0;
         for (int j = local_rank_rdispls[i]; j < local_rank_rdispls[i+1]; j++)
         {
-            size += local_rank_recv_pairs[j][1];
+            size += local_rank_recv_pairs[j].second;
         }
         MPI_Irecv(&local_recvbuf[ctr*recv_bytes],
                 size,
                 recvtype,
-                local_proc,
+                i,
                 tag,
                 comm->local_comm,
                 &recv_requests[i]);
@@ -269,21 +268,20 @@ int neighbor_alltoallv_locality(const void* sendbuf,
 
 
     // Which local ranks do I send to
-    if (local_rank_send_num)
-        send_requests.resize(local_rank_send_num);
+    send_requests.resize(ppn);
     ctr = 0;
     next_ctr = 0;
-    for (int i = 0; i < local_rank_send_num; i++)
+    for (int i = 0; i < ppn; i++)
     {
         local_proc = local_rank_dest[i];
 
         for (int j = local_rank_sdispls[i]; j < local_rank_sdispls[i+1]; j++)
         {
-            source_node = local_rank_send_pairs[j][0];
+            source_node = local_rank_send_pairs[j].first;
             agg_idx = recv_node_idx[source_node];
-            size = local_rank_send_pairs[j][1];
+            size = local_rank_send_pairs[j].second;
             memcpy(&local_sendbuf[next_ctr*recv_bytes],
-                    agg_recvbuf[agg_rdispls[agg_idx]*recv_bytes],
+                    &agg_recvbuf[agg_rdispls[agg_idx]*recv_bytes],
                     size*recv_bytes);
             agg_rdispls[agg_idx] += size;
             next_ctr += size;
@@ -298,14 +296,14 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         ctr = next_ctr;
     }
 
-    MPI_Waitall(local_rank_recv_num, recv_requests.data(), MPI_STATUSES_IGNORE);
-    MPI_Waitall(local_rank_send_num, send_requests.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall(ppn, recv_requests.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall(ppn, send_requests.data(), MPI_STATUSES_IGNORE);
 
     /*********************************************************
      ***** 6. Unpack Final Local Receive                 *****
      *********************************************************/
     std::vector<int> local_proc_idx(ppn, -1);
-    for (int i = 0; i < local_rank_recv_num; i++)
+    for (int i = 0; i < ppn; i++)
     {
         local_proc = local_rank_src[i];
         local_proc_idx[local_proc] = i;
@@ -317,7 +315,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         local_proc = get_local_proc(comm, global_proc);
         node = get_node(comm, global_proc);
         idx = local_proc_idx[local_proc];
-        memcpy(&recvbuf[ctr * recv_bytes],
+        memcpy(&recv_buffer[ctr * recv_bytes],
                 &local_recvbuf[local_rank_rdispls[idx] * recv_bytes],
                 recvcounts[i] * recv_bytes);
         local_rank_rdispls[idx] += recvcounts[i];
