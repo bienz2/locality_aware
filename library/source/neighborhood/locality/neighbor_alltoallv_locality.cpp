@@ -286,6 +286,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         send_requests.resize(local_rank_send_num);
     ctr = 0;
     next_ctr = 0;
+    int n_sends = 0;
     for (int i = 0; i < local_rank_send_num; i++)
     {
         local_proc = local_rank_dest[i];
@@ -301,18 +302,21 @@ int neighbor_alltoallv_locality(const void* sendbuf,
             agg_rdispls[agg_idx] += size;
             next_ctr += size;
         }
-        MPI_Isend(&local_sendbuf[ctr*recv_bytes],
-                next_ctr - ctr,
-                recvtype,
-                local_proc,
-                tag,
-                comm->local_comm,
-                &send_requests[i]);
-        ctr = next_ctr;
+        if (next_ctr - ctr)
+        {
+            MPI_Isend(&local_sendbuf[ctr*recv_bytes],
+                    next_ctr - ctr,
+                    recvtype,
+                    local_proc,
+                    tag,
+                    comm->local_comm,
+                    &send_requests[n_sends++]);
+            ctr = next_ctr;
+        }
     }
 
     MPI_Waitall(n_recvs, recv_requests.data(), MPI_STATUSES_IGNORE);
-    MPI_Waitall(local_rank_send_num, send_requests.data(), MPI_STATUSES_IGNORE);
+    MPI_Waitall(n_sends, send_requests.data(), MPI_STATUSES_IGNORE);
 
     /*********************************************************
      ***** 6. Unpack Final Local Receive                 *****
