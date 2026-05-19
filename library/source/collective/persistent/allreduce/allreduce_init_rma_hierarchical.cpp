@@ -87,15 +87,19 @@ int allreduce_rma_multileader_init_helper(const void* sendbuf,
     MPI_Comm_rank(comm->local_comm, &local_rank);
     MPI_Comm_size(comm->local_comm, &ppn);
 
-    if (comm->leader_comm == MPI_COMM_NULL)
+    // Convert to leader_comm (4 leaders per node)
+    int num_leaders = 4;
+    if (ppn < num_leaders)
+        num_leaders = ppn;
+    if (comm->leader_comm != MPI_COMM_NULL)
     {
-        int num_leaders_per_node = 4;
-        if (ppn < num_leaders_per_node)
-        {
-            num_leaders_per_node = ppn;
-        }
-        MPIL_Comm_leader_init(comm, ppn / num_leaders_per_node);
+        int ppl;
+        MPI_Comm_size(comm->leader_comm, &ppl);
+        if (ppn / num_leaders != ppl)
+            MPIL_Comm_leader_free(comm);
     }
+    if (comm->leader_comm == MPI_COMM_NULL)
+        MPIL_Comm_leader_init(comm, num_leaders);
 
     int tag;
     MPIL_Comm_tag(comm, &tag);
@@ -129,7 +133,16 @@ int allreduce_rma_hierarchical_init_core(const void* sendbuf,
     int type_size;
     MPI_Type_size(datatype, &type_size);
 
-    MPIL_Request_win_init(request, recvbuf, count*type_size, 1, local_comm);
+    int bytes = 0;
+    if (local_rank == 0) bytes = ppn*count*type_size;
+    MPI_Win_allocate_shared(bytes,
+                type_size,
+                MPI_INFO_NULL,
+                local_comm,
+                &(request->win_array),
+                &(request->win));
+    request->win_alloc = 1;
+
     request->sendbuf = sendbuf;
     request->recvbuf = recvbuf;
     request->n_puts = ppn;
@@ -156,13 +169,15 @@ int allreduce_rma_hierarchical_start(MPIL_Request* request)
 {
     if (request == NULL)
         return 0;
-int type_size;
-MPI_Type_size(request->datatype, &type_size);
-memset(request->recvbuf, 0, request->count*type_size);
+    
+    int local_rank;
+    MPI_Comm_rank(request->local_comm, &local_rank);
 
 #if defined(GPU)
 if (request->gpu_sendbuf)
 {
+    int type_size;
+    MPI_Type_size(request->datatype, &type_size);
 #if defined(APU)
     memcpy(request->tmp_gpubuf, request->gpu_sendbuf, request->count*type_size);
 #else
@@ -175,16 +190,31 @@ if (request->gpu_sendbuf)
 
     MPI_Win_fence(0, request->win);
 
-    MPI_Accumulate(request->sendbuf, request->count, request->datatype, 
-            0, 0, request->count, request->datatype, request->op, 
-            request->win);
+    MPI_Put(request->sendbuf, request->count, request->datatype, 
+            0, local_rank * request->count, request->count, 
+            request->datatype, request->win);
 
     return MPI_SUCCESS;
 }
 
 int allreduce_rma_hierarchical_wait(MPIL_Request* request, MPI_Status* status)   
 {
+    int local_rank, ppn;
+    MPI_Comm_rank(request->local_comm, &local_rank);
+    MPI_Comm_size(request->local_comm, &ppn);
+
+    int type_size;
+    MPI_Type_size(request->datatype, &type_size);
+
     MPI_Win_fence(0, request->win);
+
+    if (local_rank == 0)
+    {
+        memcpy(request->recvbuf, request->win_array, request->count * type_size);
+        for (int i = 1; i < ppn; i++)
+            MPI_Reduce_local((char*)request->win_array + (i * request->count * type_size),
+                    request->recvbuf, request->count, request->datatype, request->op);
+    }
 
     // Start Recursive Doubling Allreduce among leaders
     if (request->local_L_request)
@@ -196,8 +226,6 @@ int allreduce_rma_hierarchical_wait(MPIL_Request* request, MPI_Status* status)
             0, request->local_comm);
 
 #if defined(GPU)
-int type_size;
-MPI_Type_size(request->datatype, &type_size);
 if (request->gpu_recvbuf)
 {
 #if defined(APU)
