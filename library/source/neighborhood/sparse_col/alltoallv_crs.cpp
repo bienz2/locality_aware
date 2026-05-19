@@ -173,9 +173,13 @@ int alltoallv_crs_personalized_dense(const int send_nnz,
             *recv_size += recv_counts[i];
         }
     }
-    MPIL_Alloc((void**)recvvals_ptr, *recv_size * recv_bytes);
-    MPIL_Alloc((void**)src_ptr, *recv_nnz * sizeof(int));
-    MPIL_Alloc((void**)recvcounts_ptr, *recv_nnz * sizeof(int));
+    if (*recv_size)
+        MPIL_Alloc((void**)recvvals_ptr, *recv_size * recv_bytes);
+    if (*recv_nnz)
+    {
+        MPIL_Alloc((void**)src_ptr, *recv_nnz * sizeof(int));
+        MPIL_Alloc((void**)recvcounts_ptr, *recv_nnz * sizeof(int));
+    }
     MPIL_Alloc((void**)rdispls_ptr, (*recv_nnz+1) * sizeof(int));
     int* src = *src_ptr;
     int* recvcounts = *recvcounts_ptr;
@@ -199,6 +203,7 @@ int alltoallv_crs_personalized_dense(const int send_nnz,
 
     char* send_buffer = (char*)sendvals;
     char* recv_buffer = (char*)*recvvals_ptr;
+    ctr = 0;
     for (int i = 0; i < send_nnz; i++)
     {
         proc = dest[i];
@@ -209,6 +214,7 @@ int alltoallv_crs_personalized_dense(const int send_nnz,
                   tag,
                   comm->global_comm,
                   &(requests[i]));
+        ctr++;
     }
     for (int i = 0; i < *recv_nnz; i++)
     {
@@ -220,6 +226,7 @@ int alltoallv_crs_personalized_dense(const int send_nnz,
                   tag,
                   comm->global_comm,
                   &(requests[send_nnz + i]));
+        ctr++;
     }
 
     if (send_nnz + *recv_nnz)

@@ -30,6 +30,8 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         MPIL_Comm_topo_init(comm);
     }
 
+    int err;
+
     // Get rank/size for MPI communicators
     int num_procs, rank;
     int local_rank, ppn;
@@ -56,6 +58,8 @@ int neighbor_alltoallv_locality(const void* sendbuf,
 
     int tag;
     MPIL_Comm_tag(comm, &tag);
+    int local_tag;
+    MPIL_Comm_tag(comm, &local_tag);
 
     MPIL_Info* xinfo;
     MPIL_Info_init(&xinfo);
@@ -119,6 +123,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
             (void**)&local_rank_send_pairs, 
             xinfo, 
             local_lcomm);
+    MPIL_Comm_free(&local_lcomm);
 
     /*********************************************************
      ***** 2. Aggregated Inter-Node Receives             *****
@@ -163,6 +168,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
                 global_proc, tag, comm->global_comm, &recv_requests[i]);
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
 
     /*********************************************************
      ***** 2. Aggregated Inter-Node Sends                *****
@@ -272,7 +278,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
                     size,
                     recvtype,
                     i,
-                    tag,
+                    local_tag,
                     comm->local_comm,
                     &recv_requests[n_recvs++]);
             ctr += size;
@@ -308,15 +314,15 @@ int neighbor_alltoallv_locality(const void* sendbuf,
                     next_ctr - ctr,
                     recvtype,
                     local_proc,
-                    tag,
+                    local_tag,
                     comm->local_comm,
                     &send_requests[n_sends++]);
             ctr = next_ctr;
         }
     }
 
-    MPI_Waitall(n_recvs, recv_requests.data(), MPI_STATUSES_IGNORE);
-    MPI_Waitall(n_sends, send_requests.data(), MPI_STATUSES_IGNORE);
+    err = MPI_Waitall(n_recvs, recv_requests.data(), MPI_STATUSES_IGNORE);
+    err = MPI_Waitall(n_sends, send_requests.data(), MPI_STATUSES_IGNORE);
 
     /*********************************************************
      ***** 6. Unpack Final Local Receive                 *****
@@ -341,7 +347,6 @@ int neighbor_alltoallv_locality(const void* sendbuf,
         ctr += recvcounts[i];
     }
 
-    MPIL_Comm_free(&local_lcomm);
     MPIL_Info_free(&xinfo);
 
     MPIL_Free(local_rank_dest);
