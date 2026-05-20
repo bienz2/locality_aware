@@ -7,14 +7,16 @@ int initialize_comm_object(MPIL_Comm** xcomm_ptr, MPI_Comm global_comm)
     MPIL_Comm* xcomm   = (MPIL_Comm*)malloc(sizeof(MPIL_Comm));
     xcomm->global_comm = global_comm;
 
-    xcomm->cached = false;
+    xcomm->cached = true;
     xcomm->cached_comm = NULL;
     for (int i = 0; i < COMM_CACHE_SIZE; i++)
     {
         MPIL_Comm* comm = COMM_CACHE[i];
-        if (comm->global_comm == xcomm->global_comm)
+        int result;
+        MPI_Comm_compare(comm->global_comm, xcomm->global_comm, &result);
+        if (result == MPI_IDENT || result == MPI_CONGRUENT)
         {
-            xcomm->cached = true;
+            xcomm->cached = false;
             xcomm->cached_comm = comm;
             break;
         }

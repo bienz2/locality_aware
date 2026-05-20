@@ -48,6 +48,7 @@ int main(int argc, char** argv)
     MPIL_Info* mpil_info;
     MPIL_Info_init(&mpil_info);
 
+
     MPIL_Request* mpil_request;
 
     for (int i = 0; i < max_i; i++)
@@ -83,6 +84,7 @@ int main(int argc, char** argv)
         MPIL_Request_free(&mpil_request);
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
 
+
         std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
         MPIL_Set_allreduce_init_algorithm(ALLREDUCE_RECURSIVE_DOUBLING);
         MPIL_Allreduce_init(local_data.data(),
@@ -97,6 +99,7 @@ int main(int argc, char** argv)
         MPIL_Wait(mpil_request, MPI_STATUS_IGNORE);
         MPIL_Request_free(&mpil_request);
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
+
 
         std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
         MPIL_Set_allreduce_init_algorithm(ALLREDUCE_DISSEMINATION_LOC);
@@ -144,6 +147,8 @@ int main(int argc, char** argv)
         MPIL_Wait(mpil_request, MPI_STATUS_IGNORE);
         MPIL_Request_free(&mpil_request);
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
+
+
 #if defined(MPI4)
         std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
         MPIL_Set_allreduce_init_algorithm(ALLREDUCE_PMPI);
@@ -161,6 +166,7 @@ int main(int argc, char** argv)
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
 #endif
         
+
         std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
         MPIL_Set_allreduce_init_algorithm(ALLREDUCE_RMA);
         MPIL_Allreduce_init(local_data.data(),
@@ -175,6 +181,7 @@ int main(int argc, char** argv)
         MPIL_Wait(mpil_request, MPI_STATUS_IGNORE);
         MPIL_Request_free(&mpil_request);
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
+
 
         std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
         MPIL_Set_allreduce_init_algorithm(ALLREDUCE_RMA_EARLYBIRD);
@@ -191,6 +198,7 @@ int main(int argc, char** argv)
         MPIL_Request_free(&mpil_request);
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
 
+
         std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
         MPIL_Set_allreduce_init_algorithm(ALLREDUCE_RMA_HIERARCHICAL);
         MPIL_Allreduce_init(local_data.data(),
@@ -205,6 +213,7 @@ int main(int argc, char** argv)
         MPIL_Wait(mpil_request, MPI_STATUS_IGNORE);
         MPIL_Request_free(&mpil_request);
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
+
 
         std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
         MPIL_Set_allreduce_init_algorithm(ALLREDUCE_RMA_HIERARCHICAL_EARLYBIRD);
@@ -237,6 +246,7 @@ int main(int argc, char** argv)
         MPIL_Request_free(&mpil_request);
         compare_allreduce_results(pmpi_allreduce, mpil_allreduce, s); 
 
+        
         std::fill(mpil_allreduce.begin(), mpil_allreduce.end(), 0);
         MPIL_Set_allreduce_init_algorithm(ALLREDUCE_RMA_MULTILEADER_EARLYBIRD);
         MPIL_Allreduce_init(local_data.data(),

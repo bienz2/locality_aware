@@ -233,13 +233,10 @@ int main(int argc, char** argv)
         compare_alltoall_results(pmpi_alltoall, mpil_alltoall, s);
     }
 
-    printf("freeing locality comm\n");
     MPIL_Comm_free(&locality_comm);
 
-    printf("finalize\n");
     MPIL_Finalize();
 
-    printf("mpi finalize\n");
     MPI_Finalize();
     return 0;
 }  // end of main() //

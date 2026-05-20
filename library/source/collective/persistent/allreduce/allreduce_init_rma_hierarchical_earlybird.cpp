@@ -209,6 +209,7 @@ int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status*
 
     if (local_rank == 0)
     {
+        memcpy(request->recvbuf, request->win_array, request->count*type_size);
         for (int i = 1; i < ppn; i++)
             MPI_Reduce_local((char*)request->win_array + (i * request->count * type_size),
                     request->recvbuf, request->count, request->datatype, request->op);
@@ -220,7 +221,6 @@ int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status*
         MPIL_Start(request->local_L_request);
         MPIL_Wait(request->local_L_request, MPI_STATUS_IGNORE);
     }
-    memcpy(request->recvbuf, request->win_array, request->count*type_size);
     MPI_Bcast(request->recvbuf, request->count, request->datatype,
             0, request->local_comm);
     memset(request->win_array, 0, request->count*type_size);
