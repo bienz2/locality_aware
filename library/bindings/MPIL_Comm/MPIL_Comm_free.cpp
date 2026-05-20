@@ -16,9 +16,11 @@ int MPIL_Comm_free(MPIL_Comm** xcomm_ptr)
 
     if (!xcomm->cached) // only free cached comms in MPI_Finalize
     {
-        MPIL_Comm_topo_free(xcomm);
-        MPIL_Comm_device_free(xcomm);
-
+        if (xcomm->cached_comm == NULL)
+        {
+            MPIL_Comm_topo_free(xcomm);
+            MPIL_Comm_device_free(xcomm);
+        }
         free(xcomm);
     }
 
