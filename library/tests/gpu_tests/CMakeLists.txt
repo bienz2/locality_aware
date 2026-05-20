@@ -6,7 +6,9 @@ set_source_files_properties(${CPP_SOURCES} PROPERTIES LANGUAGE ${locality_aware_
 
 ## Go through each CPP file
 foreach(src ${CPP_SOURCES})
-    make_executable(${src} TRUE)
+    get_filename_component(exec_name ${src} NAME_WE)
+	make_executable(${src} TRUE)
+    target_compile_definitions(${exec_name} PRIVATE MPIL_TEST_PPN=4)
 endforeach()
 
 

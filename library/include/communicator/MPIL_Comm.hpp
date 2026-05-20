@@ -1,7 +1,13 @@
 #ifndef MPIL_COMM_H
 #define MPIL_COMM_H
 
+#include "locality_aware.h"
 #include <mpi.h>
+
+#ifdef NUMA_H
+#include <numa.h>
+#endif
+
 
 /** @brief Struct capable of maintaining multiple request and communicators for library
  * operations.
@@ -12,7 +18,8 @@
  *         - MPI_comms for locality, multileader, and neighborhoods
  *     Contains preprocessor locked GPU aware components.
  **/
-typedef struct _MPIL_Comm
+typedef struct _MPIL_Comm MPIL_Comm;
+struct _MPIL_Comm
 {
     /**@brief Global MPI comm for reference, usually MPI_COMM_WORLD**/
     MPI_Comm global_comm;
@@ -52,6 +59,9 @@ typedef struct _MPIL_Comm
     /** @brief Orders ranks bases on node, node*ppn+local **/
     int* ordered_global_ranks;
 
+    bool cached;
+    MPIL_Comm* cached_comm;
+
 #ifdef GPU
     /** @brief Number of gpus on the node**/
     int gpus_per_node;
@@ -64,7 +74,7 @@ typedef struct _MPIL_Comm
         */
     void* proc_stream;
 #endif
-} MPIL_Comm;
+};
 
 /** @brief Returns the node that process proc is on(data->global_rank_to_node[proc]**/
 int get_node(const MPIL_Comm* data, const int proc);
@@ -100,34 +110,7 @@ int initialize_comm_object(MPIL_Comm** xcomm, MPI_Comm global_comm);
  * If set, overrides default creation of MPIL_Comm::local_comm.
  * @return MPI_SUCCESS
  **/
-template <bool NUMA = false>
-int initialize_topo_communicator(MPIL_Comm* xcomm, int ppn_override = 0)
-{
-    int rank;
-    MPI_Comm_rank(xcomm->global_comm, &rank);
-
-    if (ppn_override > 0)
-    {  // Split communicator on a custom number of PPN
-        int color = (NUMA) ? rank % ppn_override : rank / ppn_override;
-        MPI_Comm_split(xcomm->global_comm, color, rank, &(xcomm->local_comm));
-    }
-    else
-    {  // Split global comm into local (per node) communicators
-        MPI_Comm_split_type(xcomm->global_comm,
-                            MPI_COMM_TYPE_SHARED,
-                            rank,
-                            MPI_INFO_NULL,
-                            &(xcomm->local_comm));
-    }
-
-    int local_rank;
-    MPI_Comm_rank(xcomm->local_comm, &local_rank);
-
-    // Split global comm into group (per local rank) communicators
-    MPI_Comm_split(xcomm->global_comm, local_rank, rank, &(xcomm->group_comm));
-
-    return MPI_SUCCESS;
-}
+int initialize_topo_communicator(MPIL_Comm* xcomm);
 
 /** @brief Allocate and fill in various process mapping array inside an :_MPIL_Comm object
  * @details This method requires that ::initialize_topo_communicator has been called

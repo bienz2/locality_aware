@@ -36,7 +36,6 @@ void test_matrix(const char* filename)
 
     MPIL_Comm* xcomm;
     MPIL_Comm_init(&xcomm, MPI_COMM_WORLD);
-    MPIL_Comm_update_locality(xcomm, 4);
 
     // Read suitesparse matrix
     ParMat<int> A;

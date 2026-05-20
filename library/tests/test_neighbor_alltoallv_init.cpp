@@ -107,8 +107,6 @@ int main(int argc, char** argv)
                                     xinfo,
                                     0,
                                     &xcomm);
-    // Update Locality : 4 PPN (for single-node tests)
-    MPIL_Comm_update_locality(xcomm, 4);
 
     // Standard MPI Implementation of Alltoallv
     MPI_Neighbor_alltoallv(alltoallv_send_vals.data(),

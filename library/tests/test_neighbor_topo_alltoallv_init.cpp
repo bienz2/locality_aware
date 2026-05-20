@@ -80,7 +80,6 @@ int main(int argc, char** argv)
     MPI_Status status;
     MPIL_Comm* xcomm;
     MPIL_Comm_init(&xcomm, MPI_COMM_WORLD);
-    MPIL_Comm_update_locality(xcomm, 4);
     MPIL_Request* xrequest;
 
     MPIL_Info* xinfo;

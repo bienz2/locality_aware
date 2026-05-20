@@ -148,8 +148,6 @@ void test_matrix(const char* filename)
                                     0,
                                     &xcomm);
 
-    MPIL_Comm_update_locality(xcomm, 4);
-
     MPIL_Set_alltoallv_neighbor_alogorithm(NEIGHBOR_ALLTOALLV_STANDARD);
     std::fill(mpix_recv_vals.begin(), mpix_recv_vals.end(), 0);
     MPIL_Neighbor_alltoallv(alltoallv_send_vals.data(),

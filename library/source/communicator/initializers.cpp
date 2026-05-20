@@ -7,14 +7,20 @@ int initialize_comm_object(MPIL_Comm** xcomm_ptr, MPI_Comm global_comm)
     MPIL_Comm* xcomm   = (MPIL_Comm*)malloc(sizeof(MPIL_Comm));
     xcomm->global_comm = global_comm;
 
+    xcomm->cached = false;
+    xcomm->cached_comm = NULL;
+    for (MPIL_Comm* comm : COMM_CACHE)
+    {
+        if (comm->global_comm == xcomm->global_comm)
+        {
+            xcomm->cached = true;
+            xcomm->cached_comm = comm;
+            break;
+        }
+    }
+
     xcomm->local_comm = MPI_COMM_NULL;
     xcomm->group_comm = MPI_COMM_NULL;
-
-    xcomm->leader_comm       = MPI_COMM_NULL;
-    xcomm->leader_group_comm = MPI_COMM_NULL;
-    xcomm->leader_local_comm = MPI_COMM_NULL;
-
-    xcomm->neighbor_comm = MPI_COMM_NULL;
 
     int flag;
     MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_TAG_UB, &(xcomm->max_tag), &flag);
@@ -23,18 +29,81 @@ int initialize_comm_object(MPIL_Comm** xcomm_ptr, MPI_Comm global_comm)
     xcomm->global_rank_to_local = NULL;
     xcomm->global_rank_to_node  = NULL;
     xcomm->ordered_global_ranks = NULL;
-
 #ifdef GPU
     xcomm->gpus_per_node = 0;
 #endif
+
+    xcomm->leader_comm       = MPI_COMM_NULL;
+    xcomm->leader_group_comm = MPI_COMM_NULL;
+    xcomm->leader_local_comm = MPI_COMM_NULL;
+
+    // Deprecate?  Should always be using Topo objects
+    xcomm->neighbor_comm = MPI_COMM_NULL;
 
     *xcomm_ptr = xcomm;
 
     return MPI_SUCCESS;
 }
 
+int initialize_topo_communicator(MPIL_Comm* xcomm)
+{
+    // Check if local_comm was already created
+    if (xcomm->local_comm != MPI_COMM_NULL)
+    {
+
+        return MPI_SUCCESS;
+    }
+
+    int rank;
+    MPI_Comm_rank(xcomm->global_comm, &rank);
+
+#ifdef MPIL_TEST_PPN
+    int color = rank / MPIL_TEST_PPN;
+    MPI_Comm_split(xcomm->global_comm, color, rank, &(xcomm->local_comm));
+#else
+    MPI_Comm_split_type(xcomm->global_comm,
+                        MPI_COMM_TYPE_SHARED,
+                        rank,
+                        MPI_INFO_NULL,
+                        &(xcomm->local_comm));
+
+#ifdef NUMA_H
+    numa_node = numa_node_of_cpu(sched_getcpu());
+    MPI_Comm node_comm = xcomm->local_comm;
+    xcomm->local_comm = MPI_COMM_NULL;
+    MPI_Comm_split(node_comm, numa_node, rank, &(xcomm->local_comm));
+#endif
+
+#endif
+
+    int local_rank;
+    MPI_Comm_rank(xcomm->local_comm, &local_rank);
+
+    // Split global comm into group (per local rank) communicators
+    MPI_Comm_split(xcomm->global_comm, local_rank, rank, &(xcomm->group_comm));
+
+    return MPI_SUCCESS;
+}
+
 int initialize_rank_mapping(MPIL_Comm* xcomm)
 {
+    // Check if already created
+    if (xcomm->global_rank_to_local != NULL)
+        return MPI_SUCCESS;
+
+
+    if (xcomm->cached_comm != NULL && xcomm->cached_comm->global_rank_to_local != NULL)
+    {
+        xcomm->global_rank_to_local = xcomm->cached_comm->global_rank_to_local;
+        xcomm->global_rank_to_node = xcomm->cached_comm->global_rank_to_node;
+        xcomm->ordered_global_ranks = xcomm->cached_comm->ordered_global_ranks;
+        xcomm->ppn = xcomm->cached_comm->ppn;
+        xcomm->num_nodes = xcomm->cached_comm->num_nodes;
+        xcomm->rank_node = xcomm->cached_comm->rank_node;
+        return MPI_SUCCESS;
+    }
+
+
     int rank = -1, num_procs = -1;
     MPI_Comm_rank(xcomm->global_comm, &rank);
     MPI_Comm_size(xcomm->global_comm, &num_procs);
@@ -90,6 +159,16 @@ int initialize_rank_mapping(MPIL_Comm* xcomm)
     MPI_Comm_size(xcomm->local_comm, &(xcomm->ppn));
     xcomm->num_nodes = ((num_procs - 1) / xcomm->ppn) + 1;
     xcomm->rank_node = get_node(xcomm, rank);
+
+    if (xcomm->cached_comm != NULL)
+    {
+        xcomm->cached_comm->global_rank_to_local = xcomm->global_rank_to_local;
+        xcomm->cached_comm->global_rank_to_node = xcomm->global_rank_to_node;
+        xcomm->cached_comm->ordered_global_ranks = xcomm->ordered_global_ranks;
+        xcomm->cached_comm->ppn = xcomm->ppn;
+        xcomm->cached_comm->num_nodes = xcomm->num_nodes;
+        xcomm->cached_comm->rank_node = xcomm->rank_node;
+    }
 
     return MPI_SUCCESS;
 }

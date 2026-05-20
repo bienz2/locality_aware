@@ -50,8 +50,6 @@ void test_matrix(const char* filename)
 
     MPIL_Info_init(&xinfo);
 
-    // Update so there are 4 PPN rather than what MPI_Comm_split returns
-    MPIL_Comm_update_locality(xcomm, 4);
 
     // Read suitesparse matrix
     ParMat<int> A;

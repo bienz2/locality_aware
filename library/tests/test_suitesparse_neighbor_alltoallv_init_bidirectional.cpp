@@ -167,7 +167,6 @@ void test_matrix(const char* filename)
                                     xinfo,
                                     0,
                                     &xcomm);
-    MPIL_Comm_update_locality(xcomm, 4);
 
     // Standard exchange
     mpil_neighbor_alltoallv_implementation = NEIGHBOR_ALLTOALLV_STANDARD;

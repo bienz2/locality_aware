@@ -8,6 +8,9 @@ extern "C" {
 
 MPIL_Comm* MPIL_COMM_WORLD;
 
+MPIL_Comm* COMM_CACHE[MAX_COMM_CACHE]; 
+int COMM_CACHE_SIZE = 0;
+
 int MPIL_Init(MPI_Comm world)
 {
     if (MPI_COMM_NULL == world)
@@ -19,9 +22,8 @@ int MPIL_Init(MPI_Comm world)
     MPI_Comm_dup(world, &Communicator::WORLD_COMM);
 
     /* Create MPIL_COMM_WORLD */
-    initialize_comm_object(&MPIL_COMM_WORLD, Communicator::WORLD_COMM);
-    initialize_topo_communicator(MPIL_COMM_WORLD);
-    initialize_rank_mapping(MPIL_COMM_WORLD);
+    MPIL_Comm_init(&MPIL_COMM_WORLD, Communicator::WORLD_COMM);
+    MPIL_Comm_topo_init(MPIL_COMM_WORLD);
 
     return MPI_SUCCESS;
 }

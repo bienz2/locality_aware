@@ -143,7 +143,6 @@ int main(int argc, char* argv[])
     }
 
     MPIL_Comm_topo_init(xcomm);
-    MPIL_Comm_update_locality(xcomm, 4);
 
     int n_recvs, s_recvs, proc;
     int *src, *rdispls, *recvcounts;

@@ -51,7 +51,6 @@ int main(int argc, char** argv)
 
     MPIL_Comm* xcomm;
     MPIL_Comm_init(&xcomm, MPI_COMM_WORLD);
-    MPIL_Comm_update_locality(xcomm, 4);
 
     for (int i = 0; i < max_i; i++)
     {

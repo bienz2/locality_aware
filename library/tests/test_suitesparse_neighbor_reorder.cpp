@@ -147,8 +147,6 @@ void test_matrix(const char* filename)
                                     0,
                                     &neighbor_comm);
 
-    MPIL_Comm_update_locality(neighbor_comm, 4);
-
     // 2. Node-Aware Communication - reorder during first send/recv
     MPIL_Neighbor_alltoallv_init(alltoallv_send_vals.data(),
                                  A.send_comm.counts.data(),

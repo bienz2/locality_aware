@@ -23,7 +23,10 @@ typedef struct _MPIL_Info MPIL_Info;
 typedef struct _MPIL_Topo MPIL_Topo;
 typedef struct _MPIL_Request MPIL_Request;
 
+#define MAX_COMM_CACHE 32
 extern MPIL_Comm* MPIL_COMM_WORLD;
+extern MPIL_Comm* COMM_CACHE[MAX_COMM_CACHE]; // Cache will only hold up to 32 communicators
+extern int COMM_CACHE_SIZE;
 
 /** \defgroup alg_enum Algorithm enumerations
  *  @brief Enumerations of implemented algorithms
