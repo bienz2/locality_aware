@@ -223,7 +223,6 @@ int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status*
     }
     MPI_Bcast(request->recvbuf, request->count, request->datatype,
             0, request->local_comm);
-    memset(request->win_array, 0, request->count*type_size);
     MPI_Win_fence(0, request->win);
 
 #if defined(GPU)
