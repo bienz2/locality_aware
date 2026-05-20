@@ -9,8 +9,9 @@ int initialize_comm_object(MPIL_Comm** xcomm_ptr, MPI_Comm global_comm)
 
     xcomm->cached = false;
     xcomm->cached_comm = NULL;
-    for (MPIL_Comm* comm : COMM_CACHE)
+    for (int i = 0; i < COMM_CACHE_SIZE; i++)
     {
+        MPIL_Comm* comm = COMM_CACHE[i];
         if (comm->global_comm == xcomm->global_comm)
         {
             xcomm->cached = true;
@@ -54,6 +55,13 @@ int initialize_topo_communicator(MPIL_Comm* xcomm)
         return MPI_SUCCESS;
     }
 
+    if (xcomm->cached_comm != NULL && xcomm->cached_comm->local_comm != MPI_COMM_NULL)
+    {
+        xcomm->local_comm = xcomm->cached_comm->local_comm;
+        xcomm->group_comm = xcomm->cached_comm->group_comm;
+        return MPI_SUCCESS;
+    }
+
     int rank;
     MPI_Comm_rank(xcomm->global_comm, &rank);
 
@@ -68,10 +76,11 @@ int initialize_topo_communicator(MPIL_Comm* xcomm)
                         &(xcomm->local_comm));
 
 #ifdef NUMA_H
-    numa_node = numa_node_of_cpu(sched_getcpu());
+    int numa_node = numa_node_of_cpu(sched_getcpu());
     MPI_Comm node_comm = xcomm->local_comm;
     xcomm->local_comm = MPI_COMM_NULL;
     MPI_Comm_split(node_comm, numa_node, rank, &(xcomm->local_comm));
+    MPI_Comm_free(&node_comm);
 #endif
 
 #endif

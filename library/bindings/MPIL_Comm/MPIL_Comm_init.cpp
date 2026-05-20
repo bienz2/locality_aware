@@ -23,7 +23,7 @@ int MPIL_Comm_init(MPIL_Comm** xcomm_ptr, MPI_Comm global_comm)
     }
     else
     { 
-        if (COMM_CACHE_SIZE + 1 < MAX_COMM_CACHE)
+        if (COMM_CACHE_SIZE < MAX_COMM_CACHE)
         {
             COMM_CACHE[COMM_CACHE_SIZE++] = xcomm;
         }
