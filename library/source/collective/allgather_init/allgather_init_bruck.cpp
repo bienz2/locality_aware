@@ -98,7 +98,7 @@ int allgather_bruck_init(const void* sendbuf,
     // Sendrecvs instead of memcpys, so that it works on the GPUs    
     MPI_Send_init(tmpbuf, recvcount * n_first_group, recvtype, rank, tag,
             comm->global_comm, &(local_S_request->requests[local_S_request->n_msgs++]));
-    MPI_Recv_init(_recvbuf + rank * count_bytes, recvcount * n_first_group, rank, tag,
+    MPI_Recv_init(_recvbuf + rank * count_bytes, recvcount * n_first_group, recvtype, rank, tag,
             comm->global_comm, &(local_S_request->requests[local_S_request->n_msgs++]));
     if (rank != 0)
     {
@@ -158,7 +158,7 @@ int allgather_bruck_wait(MPIL_Request* request, MPI_Status* status)
                 request->local_R_request->requests);
         MPI_Waitall(request->local_R_request->n_msgs,
                 request->local_R_request->requests,
-                MPI_STATUES_IGNORE);
+                MPI_STATUSES_IGNORE);
     }
 #if defined(GPU)
 if (request->gpu_recvbuf)
@@ -172,3 +172,4 @@ if (request->gpu_recvbuf)
 #endif
 }
 #endif
+}

@@ -57,7 +57,7 @@ int allreduce_dissemination_radix_init(const void* sendbuf,
     request->datatype = datatype;
     request->sendbuf = sendbuf;
     request->global_comm = comm->global_comm;
-    MPIL_Alloc(&(request->tmpbuf), radix*type_size*count*num_procs);
+    MPIL_Alloc(&(request->tmpbuf), (radix-1)*type_size*count);
     request->free_ftn = MPIL_Free;
 
 
@@ -130,6 +130,9 @@ int allreduce_dissemination_radix_init(const void* sendbuf,
 
 int allreduce_dissemination_radix_start(MPIL_Request* request)
 {
+    if (request == NULL)
+        return MPI_SUCCESS;
+
     MPIL_Request* local_L_request = request->local_L_request;
     MPIL_Request* local_S_request = request->local_S_request;
     MPIL_Request* local_R_request = request->local_R_request;
@@ -151,9 +154,6 @@ if (request->gpu_sendbuf)
 }
 #endif
 
-    if (request == NULL)
-        return MPI_SUCCESS;
-
     if (local_L_request->n_msgs)
         MPI_Startall(local_L_request->n_msgs, local_L_request->requests);
 
@@ -165,12 +165,12 @@ if (request->gpu_sendbuf)
 
 int allreduce_dissemination_radix_wait(MPIL_Request* request, MPI_Status* status)
 {
+    if (request == NULL)
+        return MPI_SUCCESS;
+
     MPIL_Request* local_L_request = request->local_L_request;
     MPIL_Request* local_S_request = request->local_S_request;
     MPIL_Request* local_R_request = request->local_R_request;
-
-    if (request == NULL)
-        return MPI_SUCCESS;
 
     int type_size;
     MPI_Type_size(request->datatype, &type_size);

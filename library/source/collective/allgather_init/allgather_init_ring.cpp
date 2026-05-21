@@ -35,7 +35,7 @@ int allgather_ring_init(const void* sendbuf,
     init_request(&request);
     init_request(&(request->local_L_request));
     MPIL_Request* local_L_request = request->local_L_request;
-    allocate_requests(max_n_msgs, request);
+    allocate_requests(2*num_procs, request);
     allocate_requests(2, local_L_request);
     request->n_msgs = 0;
     local_L_request->n_msgs = 0;
@@ -107,3 +107,4 @@ if (request->gpu_recvbuf)
 #endif
 }
 #endif
+}

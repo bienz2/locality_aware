@@ -22,7 +22,7 @@ int copy_to_cpu(const void* sendbuf,
 {
     int ierr = 0;
     
-    int send_size, recvsize;
+    int send_size, recv_size;
     MPI_Type_size(sendtype, &send_size);
     MPI_Type_size(recvtype, &recv_size);
 
@@ -50,7 +50,7 @@ int copy_to_gpu(const void* recvbuf,
         const int recvcount, MPI_Datatype recvtype,
         void* cpu_sendbuf, void* cpu_recvbuf)
 {
-    int send_size, recvsize;
+    int send_size, recv_size;
     MPI_Type_size(sendtype, &send_size);
     MPI_Type_size(recvtype, &recv_size);
 
@@ -132,9 +132,9 @@ int copy_to_cpu_alltoall(Ftn f,
             recvcount * num_procs, sendtype, 
             &cpu_sendbuf, &cpu_recvbuf);
 
-    ierr += f(cpu_sendbuf, sendcount, sendtype, cpu_recvbuf, recvcount, recvtype, comm);
+    int ierr = f(cpu_sendbuf, sendcount, sendtype, cpu_recvbuf, recvcount, recvtype, comm);
 
-    copy_to_gpu(recvbuf, count, sendcount * num_procs, sendtype, 
+    copy_to_gpu(recvbuf, sendcount * num_procs, sendtype, 
             recvcount * num_procs, sendtype, 
             cpu_sendbuf, cpu_recvbuf);
 
@@ -169,7 +169,7 @@ int copy_to_cpu_alltoallv(Ftn f,
     copy_to_cpu(sendbuf, sendcount, sendtype, 
             recvcount, sendtype, &cpu_sendbuf, &cpu_recvbuf);
 
-    ierr += f(cpu_sendbuf,
+    int ierr = f(cpu_sendbuf,
               sendcounts,
               sdispls,
               sendtype,
@@ -179,37 +179,14 @@ int copy_to_cpu_alltoallv(Ftn f,
               recvtype,
               comm);
 
-    copy_to_gpu(recvbuf, count, sendcount, sendtype, 
-            recvcount, sendtype, cpu_sendbuf, cpu_recvbuf);
+    copy_to_gpu(recvbuf, sendcount, sendtype, 
+            recvcount, recvtype, cpu_sendbuf, cpu_recvbuf);
 
     return ierr;
 
 }
 
 
-
-
-
-template <typename Ftn, typename... Args>
-int copy_to_cpu_init(const void* sendbuf,
-        const int sendcount, MPI_Datatype sendtype,
-        const int recvcount, MPI_Datatype recvtype,
-        void** cpu_sendbuf_ptr, void** cpu_recvbuf_ptr)
-{
-    int ierr = 0;
-    
-    int send_size, recvsize;
-    MPI_Type_size(sendtype, &send_size);
-    MPI_Type_size(recvtype, &recv_size);
-
-    MPIL_Alloc(&cpu_sendbuf, sendcount * send_size);
-    MPIL_Alloc(&cpu_recvbuf, recvcount * recv_size);
-
-    *cpu_sendbuf_ptr = cpu_sendbuf;
-    *cpu_recvbuf_ptr = cpu_recvbuf;
-
-    return MPI_SUCCESS;
-}
 
 
 template <typename Ftn>
@@ -219,8 +196,13 @@ int copy_to_cpu_allreduce_init(Ftn f,
 {
     void *cpu_sendbuf, *cpu_recvbuf;
 
-    copy_to_cpu_init(sendbuf, count, datatype, count, datatype, 
-            &cpu_sendbuf, &cpu_recvbuf);
+    int type_size;
+    MPI_Type_size(datatype, &type_size);
+
+    void *cpu_sendbuf, *cpu_recvbuf;
+
+    MPIL_Alloc(&cpu_sendbuf, count * type_size);
+    MPIL_Alloc(&cpu_recvbuf, count * type_size);
 
     int ierr = f(cpu_sendbuf, cpu_recvbuf, count, datatype, op, comm,
             info, req_ptr);
@@ -248,62 +230,75 @@ int copy_to_cpu_allgather_init(Ftn f,
     int num_procs;
     MPI_Comm_size(comm->global_comm, &num_procs);
 
+    int send_size, recv_size;
+    MPI_Type_size(sendtype, &send_size);
+    MPI_Type_size(recvtype, &recv_size);
+
     void *cpu_sendbuf, *cpu_recvbuf;
 
-    copy_to_cpu(sendbuf, sendcount, sendtype, 
-            recvcount*num_procs, recvtype, 
-            &cpu_sendbuf, &cpu_recvbuf);
+    MPIL_Alloc(&cpu_sendbuf, sendcount * send_size);
+    MPIL_Alloc(&cpu_recvbuf, recvcount * num_procs * recv_size);
 
     int ierr = f(cpu_sendbuf, sendcount, sendtype, 
             cpu_recvbuf, recvcount, recvtype, comm);
 
-    copy_to_gpu(recvbuf, sendcount, sendtype, 
-            recvcount*num_procs, recvtype,
-            cpu_sendbuf, cpu_recvbuf);
+    MPIL_Request* request = *req_ptr;
+    request->tmp_gpubuf = cpu_sendbuf;
+    request->gpu_sendbuf = sendbuf;
+    request->gpu_recvbuf = recvbuf;
+    request->size_sends = sendcount * send_size;
+    request->size_recvs = recvcount * num_procs * recv_size;
 
     return ierr;
 }
 
 template <typename Ftn>
-int copy_to_cpu_alltoall(Ftn f,
+int copy_to_cpu_alltoall_init(Ftn f,
         const void* sendbuf, const int sendcount, MPI_Datatype sendtype,
         void* recvbuf, const int recvcount, MPI_Datatype recvtype,
-        MPIL_Comm* comm)
+        MPIL_Comm* comm,
+                MPIL_Info* info,
+                MPIL_Request** req_ptr))
 {
     int num_procs;
     MPI_Comm_size(comm->global_comm, &num_procs);
 
+    int send_size, recv_size;
+    MPI_Type_size(sendtype, &send_size);
+    MPI_Type_size(recvtype, &recv_size);
+
     void *cpu_sendbuf, *cpu_recvbuf;
 
-    copy_to_cpu_init(sendbuf, sendcount * num_procs, sendtype, 
-            recvcount * num_procs, sendtype, 
-            &cpu_sendbuf, &cpu_recvbuf);
+    MPIL_Alloc(&cpu_sendbuf, sendcount * num_procs * send_size);
+    MPIL_Alloc(&cpu_recvbuf, recvcount * num_procs * recv_size);
 
-    ierr += f(cpu_sendbuf, sendcount, sendtype, cpu_recvbuf, recvcount, recvtype, comm,
+    int ierr = f(cpu_sendbuf, sendcount, sendtype, cpu_recvbuf, recvcount, recvtype, comm,
             info, req_ptr);
 
     MPIL_Request* request = *req_ptr;
     request->tmp_gpubuf = cpu_sendbuf;
     request->gpu_sendbuf = sendbuf;
     request->gpu_recvbuf = recvbuf;
-    request->size_sends = total_bytes_s;
-    request->size_recvs = total_bytes_r;
+    request->size_sends = sendcount * num_procs * send_size;
+    request->size_recvs = recvcount * num_procs * recv_size;
 
     return ierr;
 
 }
 
 template <typename Ftn>
-int copy_to_cpu_alltoallv(Ftn f,
-                      const void* sendbuf,
-                      const int sendcounts[],
-                      const int sdispls[],
-                      MPI_Datatype sendtype,
-                      void* recvbuf,
-                      const int recvcounts[],
-                      const int rdispls[],
-                      MPI_Datatype recvtype,
-                      MPIL_Comm* comm)
+int copy_to_cpu_alltoallv_init(Ftn f,
+                const void* sendbuf,
+                const int sendcounts[],
+                const int sdispls[],
+                MPI_Datatype sendtype,
+                void* recvbuf,
+                const int recvcounts[],
+                const int rdispls[],
+                MPI_Datatype recvtype,
+                MPIL_Comm* comm,
+                MPIL_Info* info,
+                MPIL_Request** req_ptr))
 {
     int num_procs;
     MPI_Comm_size(comm->global_comm, &num_procs);
@@ -315,12 +310,20 @@ int copy_to_cpu_alltoallv(Ftn f,
         recvcount += recvcounts[i];
     }
 
+    int send_size, recv_size;
+    MPI_Type_size(sendtype, &send_size);
+    MPI_Type_size(recvtype, &recv_size);
+
     void *cpu_sendbuf, *cpu_recvbuf;
+
+    MPIL_Alloc(&cpu_sendbuf, sendcount * send_size);
+    MPIL_Alloc(&cpu_recvbuf, recvcount * recv_size);
+
 
     copy_to_cpu_init(sendbuf, sendcount, sendtype, 
             recvcount, sendtype, &cpu_sendbuf, &cpu_recvbuf);
 
-    ierr += f(cpu_sendbuf,
+    int ierr = f(cpu_sendbuf,
               sendcounts,
               sdispls,
               sendtype,
@@ -334,8 +337,8 @@ int copy_to_cpu_alltoallv(Ftn f,
     request->tmp_gpubuf = cpu_sendbuf;
     request->gpu_sendbuf = sendbuf;
     request->gpu_recvbuf = recvbuf;
-    request->size_sends = total_bytes_s;
-    request->size_recvs = total_bytes_r;
+    request->size_sends = sendcount * send_size;
+    request->size_recvs = recvcount * recv_size;
 
     return ierr;
 

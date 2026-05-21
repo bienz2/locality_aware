@@ -1,5 +1,5 @@
-#ifndef MPI_ADVANCE_ALLGATHER_H
-#define MPI_ADVANCE_ALLGATHER_H
+#ifndef MPI_ADVANCE_ALLGATHER_INIT_H
+#define MPI_ADVANCE_ALLGATHER_INIT_H
 
 #include <mpi.h>
 #include <stdlib.h>
@@ -26,10 +26,7 @@ extern "C" {
  **/
 typedef int (*allgather_init_ftn)(
     const void*, int, MPI_Datatype, void*, int, MPI_Datatype, MPIL_Comm*, MPIL_Info*,
-    MPI_Request**);
-typedef int (*allgather_helper_ftn)(
-    const void*, int, MPI_Datatype, void*, int, MPI_Datatype, MPIL_Comm*, MPIL_Info*,
-    MPI_Request**, MPIL_Alloc_ftn, MPIL_Free_ftn);
+    MPIL_Request**);
 
 //** External Wrappers
 //**//----------------------------------------------------------------------

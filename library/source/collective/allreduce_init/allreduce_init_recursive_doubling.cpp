@@ -128,6 +128,9 @@ int allreduce_recursive_doubling_init_core(
 
 int allreduce_recursive_doubling_start(MPIL_Request* request)
 {
+    if (request == NULL)
+        return 0;
+
     MPIL_Request* local_L_request = request->local_L_request;
     MPIL_Request* local_S_request = request->local_S_request;
     MPIL_Request* local_R_request = request->local_R_request;
@@ -147,8 +150,7 @@ if (request->gpu_sendbuf)
 #endif
 }
 #endif
-    if (request == NULL)
-        return 0;
+    
 
     if (local_L_request->n_msgs)
         MPI_Startall(local_L_request->n_msgs, local_L_request->requests);
@@ -161,15 +163,15 @@ if (request->gpu_sendbuf)
 
 int allreduce_recursive_doubling_wait(MPIL_Request* request, MPI_Status* status)   
 {
+    if (request == NULL)
+        return 0;
+
     MPIL_Request* local_L_request = request->local_L_request;
     MPIL_Request* local_S_request = request->local_S_request;
     MPIL_Request* local_R_request = request->local_R_request;
 
     int type_size;
     MPI_Type_size(request->datatype, &type_size);
-
-    if (request == NULL)
-        return 0;
 
     if (local_L_request->n_msgs)
         MPI_Waitall(local_L_request->n_msgs, local_L_request->requests, MPI_STATUSES_IGNORE);

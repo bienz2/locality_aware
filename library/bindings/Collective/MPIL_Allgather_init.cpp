@@ -15,7 +15,7 @@ int MPIL_Allgather_init(const void* sendbuf,
                    MPIL_Info* info,
                    MPI_Request** req_ptr)
 {
-    allgather_ftn method;
+    allgather_init_ftn method;
     bool gpu_aware = false;
     bool copy_to_cpu = false;
 
@@ -65,15 +65,15 @@ int MPIL_Allgather_init(const void* sendbuf,
 
 #if defined(GPU)
     if (gpu_aware)
-        return gpu_aware_collective(method, sendbuf, sendcount, sendtype,
-                recvbuf, recvcount, recvtype, comm);
+        return gpu_aware_collective_init(method, sendbuf, sendcount, sendtype,
+                recvbuf, recvcount, recvtype, comm, info, req_ptr);
     else if (copy_to_cpu)
-        return copy_to_cpu_allgather(method, sendbuf, sendcount, sendtype, 
-                recvbuf, recvcount, recvtype, comm);
+        return copy_to_cpu_allgather_init(method, sendbuf, sendcount, sendtype, 
+                recvbuf, recvcount, recvtype, comm, info, req_ptr);
 #endif
 
     return method(sendbuf, sendcount, sendtype, recvbuf, recvcount, 
-            recvtype, comm);
+            recvtype, comm, info, req_ptr);
 }
 
 

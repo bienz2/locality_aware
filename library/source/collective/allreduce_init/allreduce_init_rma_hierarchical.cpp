@@ -28,17 +28,6 @@ int allreduce_rma_hierarchical_init(const void* sendbuf,
     return allreduce_rma_hierarchical_init_core(sendbuf, recvbuf, count,
             datatype, op, comm->group_comm, comm->local_comm, tag,
             info, req_ptr);
-
-    int allreduce_rma_hierarchical_init_core(const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPI_Comm group_comm,
-                                 MPI_Comm local_comm,
-                                 int tag,
-                                 MPIL_Info* info,
-                                 MPIL_Request** req_ptr)
 }
 
 int allreduce_rma_multileader_init(const void* sendbuf,
