@@ -203,8 +203,8 @@ int MPIL_Set_alltoallv_algorithm(enum AlltoallvMethod algorithm);
 int MPIL_Set_allreduce_algorithm(enum AllreduceMethod algorithm);
 int MPIL_Set_allreduce_init_algorithm(enum AllreduceMethod algorithm);
 int MPIL_Set_allgather_algorithm(enum AllgatherMethod algorithm);
-int MPIL_Set_alltoallv_neighbor_alogorithm(enum NeighborAlltoallvMethod algorithm);
-int MPIL_Set_alltoallv_neighbor_init_alogorithm(
+int MPIL_Set_alltoallv_neighbor_algorithm(enum NeighborAlltoallvMethod algorithm);
+int MPIL_Set_alltoallv_neighbor_init_algorithm(
     enum NeighborAlltoallvInitMethod algorithm);
 int MPIL_Set_alltoall_crs(enum AlltoallCRSMethod algorithm);
 int MPIL_Set_alltoallv_crs(enum AlltoallvCRSMethod algorithm);
