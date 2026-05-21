@@ -151,14 +151,16 @@ int allreduce_rma_hierarchical_earlybird_init_core(const void* sendbuf,
     request->op = op;
     MPI_Comm_dup(local_comm, &(request->local_comm));
 
-    request->start_function = allreduce_rma_hierarchical_start;
-    request->wait_function  = allreduce_rma_hierarchical_wait;
+    request->start_function = allreduce_rma_hierarchical_earlybird_start;
+    request->wait_function  = allreduce_rma_hierarchical_earlybird_wait;
 
     
 
     if (local_rank == 0)
         allreduce_recursive_doubling_init_core(MPI_IN_PLACE, recvbuf, count, datatype,
                 op, group_comm, tag, info, &(request->local_L_request), alloc_ftn, free_ftn);
+
+    MPI_Win_fence(0, request->win);
 
     *req_ptr = request;    
 
