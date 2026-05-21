@@ -32,7 +32,7 @@ int MPIL_Request_free(MPIL_Request** request_ptr)
         request->local_R_request = NULL;
     }
 
-    if (request->n_msgs)
+    if (request->requests != NULL)
     {
         for (int i = 0; i < request->n_msgs; i++)
         {
@@ -98,6 +98,8 @@ int MPIL_Request_free(MPIL_Request** request_ptr)
 #endif
 
     free(request);
+
+    *request_ptr = NULL;
 
     return 0;
 }

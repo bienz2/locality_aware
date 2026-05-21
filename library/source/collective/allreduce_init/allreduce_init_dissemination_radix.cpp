@@ -56,7 +56,6 @@ int allreduce_dissemination_radix_init(const void* sendbuf,
     request->op = op;
     request->datatype = datatype;
     request->sendbuf = sendbuf;
-    request->global_comm = comm->global_comm;
     MPIL_Alloc(&(request->tmpbuf), (radix-1)*type_size*count);
     request->free_ftn = MPIL_Free;
 

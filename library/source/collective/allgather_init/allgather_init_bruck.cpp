@@ -175,4 +175,6 @@ if (request->gpu_recvbuf)
 #endif
 }
 #endif
+
+    return MPI_SUCCESS;
 }

@@ -48,6 +48,7 @@ void init_request(MPIL_Request** request_ptr)
     request->win_bytes = 0;
     request->win_type_bytes = 0;
     request->n_puts = 0;
+    request->win_alloc = 0;
 
 #ifdef GPU
     request->gpu_sendbuf = NULL;
