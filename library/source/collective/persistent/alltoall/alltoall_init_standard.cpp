@@ -147,7 +147,7 @@ if (request->gpu_recvbuf)
 int alltoall_pairwise_start(MPIL_Request* request)
 {
 #if defined(GPU)
-if (request->gpu_recvbuf)
+if (request->gpu_sendbuf)
 {
 #if defined(APU)
     memcpy(request->tmp_gpubuf, request->gpu_sendbuf, request->size_sends);
