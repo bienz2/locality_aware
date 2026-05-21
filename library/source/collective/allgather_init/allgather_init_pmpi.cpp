@@ -1,4 +1,4 @@
-#include "collective/allgather.h"
+#include "collective/allgather_init.h"
 
 #if defined(MPI4)
 int allgather_pmpi_init(const void* sendbuf,
@@ -16,10 +16,12 @@ int allgather_pmpi_init(const void* sendbuf,
     allocate_requests(1, request);
 
     PMPI_Allgather_init(sendbuf, sendcount, sendtype, recvbuf,
-            recvcount, recvtype, comm, info, request->requests);
+            recvcount, recvtype, comm->global_comm, MPI_INFO_NULL, request->requests);
 
     request->start_function = allgather_pmpi_start;
     request->wait_function = allgather_pmpi_wait;
+
+    *req_ptr = request;
 
     return MPI_SUCCESS;
 }
@@ -43,14 +45,14 @@ if (request->gpu_sendbuf)
 #endif
 
 
-    PMPI_Start(requests->request);
+    PMPI_Start(request->requests);
 
     return MPI_SUCCESS;
 }
 
 int allgather_pmpi_wait(MPIL_Request* request, MPI_Status* status)
 {
-    PMPI_Wait(requests->request, MPI_STATUS_IGNORE);
+    PMPI_Wait(request->requests, MPI_STATUS_IGNORE);
 
 #if defined(GPU)
 if (request->gpu_recvbuf)

@@ -17,6 +17,8 @@ int allgather_ring_start(MPIL_Request* request);
 int allgather_ring_wait(MPIL_Request* request, MPI_Status* status);
 int allgather_bruck_start(MPIL_Request* request);
 int allgather_bruck_wait(MPIL_Request* request, MPI_Status* status);
+int allgather_pmpi_start(MPIL_Request* request);
+int allgather_pmpi_wait(MPIL_Request* request, MPI_Status* status);
 
 /** @brief Function pointer to allreduce implemenation
  * @details 

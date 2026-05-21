@@ -65,6 +65,8 @@ int allgather_ring_init(const void* sendbuf,
         next_pos = (next_pos + 1) % num_procs;
     }
 
+    *req_ptr = request;
+
     return MPI_SUCCESS;
 }
 

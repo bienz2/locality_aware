@@ -51,8 +51,8 @@ int allgather_bruck_init(const void* sendbuf,
     int count_bytes = recvcount * bytes;
 
     char* _recvbuf = (char*)recvbuf;
-    char* tmpbuf;
-    MPIL_Alloc((void**)(&tmpbuf), count_bytes*num_procs);
+    MPIL_Alloc((void**)&(request->tmpbuf), count_bytes*num_procs);
+    request->free_ftn = MPIL_Free;
 
     // Sendrecv instead of memcpy, so that it works on the GPUs
     if (sendbuf != MPI_IN_PLACE)
@@ -73,9 +73,9 @@ int allgather_bruck_init(const void* sendbuf,
         send_proc = (rank - pow_i + num_procs) % num_procs;
         recv_proc = (rank + pow_i) % num_procs;
 
-        MPI_Send_init(tmpbuf, recvcount * pow_i, recvtype, send_proc, tag,
+        MPI_Send_init(request->tmpbuf, recvcount * pow_i, recvtype, send_proc, tag,
                 comm->global_comm, &(request->requests[request->n_msgs++]));
-        MPI_Recv_init(tmpbuf + pow_i * count_bytes, recvcount * pow_i, recvtype, recv_proc, tag,
+        MPI_Recv_init(request->tmpbuf + pow_i * count_bytes, recvcount * pow_i, recvtype, recv_proc, tag,
                 comm->global_comm, &(request->requests[request->n_msgs++]));
 
         pow_i *= 2;
@@ -88,9 +88,9 @@ int allgather_bruck_init(const void* sendbuf,
         send_proc = (rank - pow_i + num_procs) % num_procs;
         recv_proc = (rank + pow_i) % num_procs;
 
-        MPI_Send_init(tmpbuf, recvcount * count, recvtype, send_proc, tag,
+        MPI_Send_init(request->tmpbuf, recvcount * count, recvtype, send_proc, tag,
                 comm->global_comm, &(request->requests[request->n_msgs++]));
-        MPI_Recv_init(tmpbuf + pow_i * count_bytes, recvcount * count, recvtype, recv_proc, tag,
+        MPI_Recv_init(request->tmpbuf + pow_i * count_bytes, recvcount * count, recvtype, recv_proc, tag,
                 comm->global_comm, &(request->requests[request->n_msgs++]));
 
     }
@@ -99,19 +99,19 @@ int allgather_bruck_init(const void* sendbuf,
     int n_last_group = num_procs - n_first_group;
 
     // Sendrecvs instead of memcpys, so that it works on the GPUs    
-    MPI_Send_init(tmpbuf, recvcount * n_first_group, recvtype, rank, tag,
+    MPI_Send_init(request->tmpbuf, recvcount * n_first_group, recvtype, rank, tag,
             comm->global_comm, &(local_S_request->requests[local_S_request->n_msgs++]));
     MPI_Recv_init(_recvbuf + rank * count_bytes, recvcount * n_first_group, recvtype, rank, tag,
             comm->global_comm, &(local_S_request->requests[local_S_request->n_msgs++]));
     if (rank != 0)
     {
-        MPI_Send_init(tmpbuf + (n_first_group * count_bytes), recvcount * n_last_group, recvtype, rank, tag,
+        MPI_Send_init(request->tmpbuf + (n_first_group * count_bytes), recvcount * n_last_group, recvtype, rank, tag,
                 comm->global_comm, &(local_R_request->requests[local_R_request->n_msgs++]));
         MPI_Recv_init(_recvbuf, recvcount * n_last_group, recvtype, rank, tag,
                 comm->global_comm, &(local_R_request->requests[local_R_request->n_msgs++]));
     }
     
-    MPIL_Free(tmpbuf);
+    *req_ptr = request;
 
     return MPI_SUCCESS;
 }
