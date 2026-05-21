@@ -1,4 +1,4 @@
-#include "collective/allgather.h"
+#include "collective/allgather_init.h"
 #include "locality_aware.h"
 
 // Calls underlying MPI implementation
@@ -39,6 +39,9 @@ int allgather_ring_init(const void* sendbuf,
     allocate_requests(2, local_L_request);
     request->n_msgs = 0;
     local_L_request->n_msgs = 0;
+
+    request->start_function = allgather_ring_start;
+    request->wait_function = allgather_ring_wait;
     
     // Send sendbuf to myself, instead of memcpy, to work on GPU
     if (sendbuf != MPI_IN_PLACE)

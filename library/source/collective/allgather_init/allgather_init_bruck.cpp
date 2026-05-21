@@ -1,4 +1,4 @@
-#include "collective/allgather.h"
+#include "collective/allgather_init.h"
 #include "locality_aware.h"
 #include <math.h>
 // Implements the Bruck allgather algorithm
@@ -39,6 +39,9 @@ int allgather_bruck_init(const void* sendbuf,
     local_L_request->n_msgs = 0;
     local_S_request->n_msgs = 0;
     local_R_request->n_msgs = 0;
+
+    request->start_function = allgather_bruck_start;
+    request->wait_function  = allgather_bruck_wait;
 
     int tag;
     get_tag(comm, &tag);

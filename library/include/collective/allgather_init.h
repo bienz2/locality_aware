@@ -5,11 +5,18 @@
 #include <stdlib.h>
 
 #include "communicator/MPIL_Comm.hpp"
+#include "communicator/MPIL_Info.h"
+#include "persistent/MPIL_Request.h"
 #include "utils/MPIL_Alloc.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+int allgather_ring_start(MPIL_Request* request);
+int allgather_ring_wait(MPIL_Request* request, MPI_Status* status);
+int allgather_bruck_start(MPIL_Request* request);
+int allgather_bruck_wait(MPIL_Request* request, MPI_Status* status);
 
 /** @brief Function pointer to allreduce implemenation
  * @details 
