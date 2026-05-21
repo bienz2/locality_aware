@@ -19,23 +19,29 @@ int MPIL_Alltoall_init(const void* sendbuf,
                   MPIL_Request** req_ptr)
 {
     alltoall_init_ftn method;
+    bool gpu_aware = false;
+    bool copy_to_cpu = false;
 
     switch (mpil_alltoall_init_implementation)
     {
 #if defined(GPU) 
 #if defined(GPU_AWARE)
         case ALLTOALL_GPU_PAIRWISE:
-            method = gpu_aware_alltoall_pairwise_init;
+            method = alltoall_pairwise_init;
+            gpu_aware = true;
             break;
         case ALLTOALL_GPU_NONBLOCKING:
-            method = gpu_aware_alltoall_nonblocking_init;
+            method = alltoall_nonblocking_init;
+            gpu_aware = true;
             break;
 #endif
         case ALLTOALL_CTC_PAIRWISE:
-            method = copy_to_cpu_alltoall_pairwise_init;
+            method = alltoall_pairwise_init;
+            copy_to_cpu = true;
             break;
         case ALLTOALL_CTC_NONBLOCKING:
-            method = copy_to_cpu_alltoall_nonblocking_init;
+            method = alltoall_nonblocking_init;
+            copy_to_cpu = true;
             break;
 #endif
         case ALLTOALL_PAIRWISE:
@@ -51,6 +57,15 @@ int MPIL_Alltoall_init(const void* sendbuf,
             method = alltoall_pairwise_init;
             break;
     }
+
+#if defined(GPU)
+    if (gpu_aware)
+        return gpu_aware_collective_init(method, sendbuf, sendcount, sendtype,
+                recvbuf, recvcount, recvtype, mpi_comm, mpil_info, req_ptr);
+    else if (copy_to_cpu)
+        return copy_to_cpu_alltoall_init(method, sendbuf, sendcount, sendtype,
+                recvbuf, recvcount, recvtype, mpi_comm, mpil_info, req_ptr);
+#endif
 
     return method(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, mpi_comm,
             mpil_info, req_ptr);

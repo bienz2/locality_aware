@@ -43,10 +43,6 @@ int allreduce_rma_hierarchical_earlybird_wait(MPIL_Request* request, MPI_Status*
 typedef int (*allreduce_init_ftn)(
     const void*, void*, int, MPI_Datatype, MPI_Op op, MPIL_Comm*,
     MPIL_Info* info, MPIL_Request** req_ptr);
-typedef int (*allreduce_init_helper_ftn)(
-    const void*, void*, int, MPI_Datatype, MPI_Op op, MPIL_Comm*,
-    MPIL_Info* info, MPIL_Request** req_ptr,
-    MPIL_Alloc_ftn, MPIL_Free_ftn);
 
 //** External Wrappers
 //**//----------------------------------------------------------------------
@@ -258,132 +254,6 @@ int allreduce_pmpi_init(const void* sendbuf,
 
 
 
-/** @brief Helper functions
- * @details takes the temporary buffer as input
- * @details Each step consists of a local allreduce before non-local
- **/
-int allreduce_recursive_doubling_init_helper(
-                                 const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPIL_Comm* comm,
-                                 MPIL_Info* info,
-                                 MPIL_Request** req_ptr,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-
-int allreduce_dissemination_loc_init_helper(
-                                 const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPIL_Comm* comm,
-                                 MPIL_Info* info,
-                                 MPIL_Request** req_ptr,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-
-int allreduce_dissemination_ml_init_helper(
-                                 const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPIL_Comm* comm,
-                                 MPIL_Info* info,
-                                 MPIL_Request** req_ptr,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-
-
-
-int allreduce_dissemination_radix_init_helper(const void* sendbuf,
-                                              void* recvbuf,
-                                              int count,
-                                              MPI_Datatype datatype,
-                                              MPI_Op op,
-                                              MPIL_Comm* comm,
-                                              MPIL_Info* info,
-                                              MPIL_Request** req_ptr,
-                                              MPIL_Alloc_ftn alloc_ftn,
-                                              MPIL_Free_ftn free_ftn);
-
-int allreduce_rma_init_helper(
-                             const void* sendbuf,
-                             void* recvbuf,
-                             int count,
-                             MPI_Datatype datatype,
-                             MPI_Op op,
-                             MPIL_Comm* comm,
-                             MPIL_Info* info,
-                             MPIL_Request** req_ptr,
-                             MPIL_Alloc_ftn alloc_ftn,
-                             MPIL_Free_ftn free_ftn);
-
-int allreduce_rma_hierarchical_init_helper(
-                             const void* sendbuf,
-                             void* recvbuf,
-                             int count,
-                             MPI_Datatype datatype,
-                             MPI_Op op,
-                             MPIL_Comm* comm,
-                             MPIL_Info* info,
-                             MPIL_Request** req_ptr,
-                             MPIL_Alloc_ftn alloc_ftn,
-                             MPIL_Free_ftn free_ftn);
-
-int allreduce_rma_multileader_init_helper(
-                             const void* sendbuf,
-                             void* recvbuf,
-                             int count,
-                             MPI_Datatype datatype,
-                             MPI_Op op,
-                             MPIL_Comm* comm,
-                             MPIL_Info* info,
-                             MPIL_Request** req_ptr,
-                             MPIL_Alloc_ftn alloc_ftn,
-                             MPIL_Free_ftn free_ftn);
-
-int allreduce_rma_earlybird_init_helper(
-                             const void* sendbuf,
-                             void* recvbuf,
-                             int count,
-                             MPI_Datatype datatype,
-                             MPI_Op op,
-                             MPIL_Comm* comm,
-                             MPIL_Info* info,
-                             MPIL_Request** req_ptr,
-                             MPIL_Alloc_ftn alloc_ftn,
-                             MPIL_Free_ftn free_ftn);
-
-int allreduce_rma_hierarchical_earlybird_init_helper(
-                             const void* sendbuf,
-                             void* recvbuf,
-                             int count,
-                             MPI_Datatype datatype,
-                             MPI_Op op,
-                             MPIL_Comm* comm,
-                             MPIL_Info* info,
-                             MPIL_Request** req_ptr,
-                             MPIL_Alloc_ftn alloc_ftn,
-                             MPIL_Free_ftn free_ftn);
-
-int allreduce_rma_multileader_earlybird_init_helper(
-                             const void* sendbuf,
-                             void* recvbuf,
-                             int count,
-                             MPI_Datatype datatype,
-                             MPI_Op op,
-                             MPIL_Comm* comm,
-                             MPIL_Info* info,
-                             MPIL_Request** req_ptr,
-                             MPIL_Alloc_ftn alloc_ftn,
-                             MPIL_Free_ftn free_ftn);
-
-
 int allreduce_rma_hierarchical_earlybird_init_core(const void* sendbuf,
                                  void* recvbuf,
                                  int count,
@@ -393,9 +263,7 @@ int allreduce_rma_hierarchical_earlybird_init_core(const void* sendbuf,
                                  MPI_Comm local_comm,
                                  int tag,
                                  MPIL_Info* info,
-                                 MPIL_Request** req_ptr,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
+                                 MPIL_Request** req_ptr);
 
 
 int allreduce_rma_hierarchical_init_core(const void* sendbuf,
@@ -407,10 +275,7 @@ int allreduce_rma_hierarchical_init_core(const void* sendbuf,
                                  MPI_Comm local_comm,
                                  int tag,
                                  MPIL_Info* info,
-                                 MPIL_Request** req_ptr,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-
+                                 MPIL_Request** req_ptr);
 
 int allreduce_recursive_doubling_init_core(
                                  const void* sendbuf,
@@ -421,9 +286,7 @@ int allreduce_recursive_doubling_init_core(
                                  MPI_Comm comm,
                                  int tag,
                                  MPIL_Info* info,
-                                 MPIL_Request** req_ptr,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
+                                 MPIL_Request** req_ptr);
 
 int allreduce_dissemination_loc_init_core(
                                  const void* sendbuf,
@@ -436,9 +299,7 @@ int allreduce_dissemination_loc_init_core(
                                  MPI_Comm local_comm,
                                  MPIL_Info* info,
                                  int tag,
-                                 MPIL_Request** req_ptr,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
+                                 MPIL_Request** req_ptr);
 
 
 #ifdef __cplusplus

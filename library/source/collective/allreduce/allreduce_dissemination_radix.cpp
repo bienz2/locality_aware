@@ -16,19 +16,6 @@ int allreduce_dissemination_radix(const void* sendbuf,
     if (count == 0)
         return MPI_SUCCESS;
 
-    return allreduce_dissemination_radix_helper(sendbuf, recvbuf, count,
-            datatype, op, comm, MPIL_Alloc, MPIL_Free);
-}
-
-int allreduce_dissemination_radix_helper(const void* sendbuf,
-                                         void* recvbuf,
-                                         int count,
-                                         MPI_Datatype datatype,
-                                         MPI_Op op,
-                                         MPIL_Comm* comm,
-                                         MPIL_Alloc_ftn alloc_ftn, 
-                                         MPIL_Free_ftn free_ftn)
-{
     int rank, num_procs;
     MPI_Comm_rank(comm->global_comm, &rank);
     MPI_Comm_size(comm->global_comm, &num_procs);
@@ -38,30 +25,8 @@ int allreduce_dissemination_radix_helper(const void* sendbuf,
     int tag;
     get_tag(comm, &tag);
 
-    return allreduce_dissemination_radix_core(
-                   sendbuf, recvbuf, count, datatype, op, 
-                   comm, tag, radix,
-                   alloc_ftn, free_ftn);
-}
-
-int allreduce_dissemination_radix_core(
-                        const void* sendbuf,
-                        void* recvbuf,
-                        int count,
-                        MPI_Datatype datatype,
-                        MPI_Op op,
-                        MPIL_Comm* comm, 
-                        int tag,
-                        int radix,
-                        MPIL_Alloc_ftn alloc_ftn,
-                        MPIL_Free_ftn free_ftn)
-{
     int type_size;
     MPI_Type_size(datatype, &type_size);
-
-    int rank, num_procs;
-    MPI_Comm_rank(comm->global_comm, &rank);
-    MPI_Comm_size(comm->global_comm, &num_procs);
 
     int pow_radix_num_procs = 1;
     while (pow_radix_num_procs * radix <= num_procs)

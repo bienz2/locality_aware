@@ -13,20 +13,6 @@ int allgather_ring(const void* sendbuf,
         if (sendcount == 0)
         return MPI_SUCCESS;
 
-    return allgather_ring_helper(sendbuf, sendcount, sendtype, recvbuf, recvcount,
-            recvtype, comm, MPIL_Alloc, MPIL_Free);
-}
-
-int allgather_ring_helper(const void* sendbuf,
-                   int sendcount,
-                   MPI_Datatype sendtype,
-                   void* recvbuf,
-                   int recvcount,
-                   MPI_Datatype recvtype,
-                   MPIL_Comm* comm,
-                   MPIL_Alloc_ftn alloc_ftn,
-                   MPIL_Free_ftn free_ftn)
-{
     int rank, num_procs;
     MPI_Comm_rank(comm->global_comm, &rank);
     MPI_Comm_size(comm->global_comm, &num_procs);
@@ -44,9 +30,12 @@ int allgather_ring_helper(const void* sendbuf,
     char* _recvbuf = (char*)recvbuf;
     
     // Send sendbuf to myself, instead of memcpy, to work on GPU
-    MPI_Sendrecv(sendbuf, sendcount, sendtype, rank, tag,
-            _recvbuf + (rank * count_bytes), recvcount, recvtype, rank, tag,
-            comm->global_comm, MPI_STATUS_IGNORE);
+    if (sendbuf != MPI_IN_PLACE)
+    {
+        MPI_Sendrecv(sendbuf, sendcount, sendtype, rank, tag,
+                _recvbuf + (rank * count_bytes), recvcount, recvtype, rank, tag,
+                comm->global_comm, MPI_STATUS_IGNORE);
+    }
 
     int pos = rank;
     int next_pos = (rank + 1) % num_procs;

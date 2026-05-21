@@ -25,9 +25,7 @@ extern "C" {
  **/
 typedef int (*allreduce_ftn)(
     const void*, void*, const int, MPI_Datatype, MPI_Op op, MPIL_Comm*);
-typedef int (*allreduce_helper_ftn)(
-    const void*, void*, const int, MPI_Datatype, MPI_Op op, MPIL_Comm*,
-    MPIL_Alloc_ftn, MPIL_Free_ftn);
+
 
 //** External Wrappers
 //**//----------------------------------------------------------------------
@@ -133,47 +131,6 @@ int allreduce_pmpi(const void* sendbuf,
 
 
 
-/** @brief Helper functions
- * @details takes the temporary buffer as input
- * @details Each step consists of a local allreduce before non-local
- **/
-int allreduce_recursive_doubling_helper(
-                                 const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPIL_Comm* comm,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-int allreduce_dissemination_loc_helper(
-                                 const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPIL_Comm* comm,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-int allreduce_dissemination_ml_helper(
-                                 const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPIL_Comm* comm,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-int allreduce_dissemination_radix_helper(
-                                 const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPIL_Comm* comm,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-
 int allreduce_dissemination_loc_core(
                                  const void* sendbuf,
                                  void* recvbuf,
@@ -183,20 +140,7 @@ int allreduce_dissemination_loc_core(
                                  MPI_Comm global_comm,
                                  MPI_Comm group_comm,
                                  MPI_Comm local_comm,
-                                 int tag,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
-int allreduce_dissemination_radix_core(
-                                 const void* sendbuf,
-                                 void* recvbuf,
-                                 int count,
-                                 MPI_Datatype datatype,
-                                 MPI_Op op,
-                                 MPIL_Comm* comm,
-                                 int tag,
-                                 int radix,
-                                 MPIL_Alloc_ftn alloc_ftn,
-                                 MPIL_Free_ftn free_ftn);
+                                 int tag);
 
 
 

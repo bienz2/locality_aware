@@ -10,21 +10,6 @@ int allreduce_recursive_doubling(const void* sendbuf,
                                  MPI_Op op,
                                  MPIL_Comm* comm)
 {
-    return allreduce_recursive_doubling_helper(
-                   sendbuf, recvbuf, count, datatype, op, comm,
-                   MPIL_Alloc, MPIL_Free);
-}
-
-int allreduce_recursive_doubling_helper(
-                        const void* sendbuf,
-                        void* recvbuf,
-                        int count,
-                        MPI_Datatype datatype,
-                        MPI_Op op,
-                        MPIL_Comm* comm,
-                        MPIL_Alloc_ftn alloc_ftn,
-                        MPIL_Free_ftn free_ftn)
-{
     if (count == 0)
         return MPI_SUCCESS;
 

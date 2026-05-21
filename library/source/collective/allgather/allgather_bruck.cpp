@@ -15,20 +15,6 @@ int allgather_bruck(const void* sendbuf,
     if (sendcount == 0)
         return MPI_SUCCESS;
 
-    return allgather_bruck_helper(sendbuf, sendcount, sendtype, recvbuf, recvcount,
-            recvtype, comm, MPIL_Alloc, MPIL_Free);
-}
-
-int allgather_bruck_helper(const void* sendbuf,
-                   int sendcount,
-                   MPI_Datatype sendtype,
-                   void* recvbuf,
-                   int recvcount,
-                   MPI_Datatype recvtype,
-                   MPIL_Comm* comm,
-                   MPIL_Alloc_ftn alloc_ftn,
-                   MPIL_Free_ftn free_ftn)
-{
     int rank, num_procs;
     MPI_Comm_rank(comm->global_comm, &rank);
     MPI_Comm_size(comm->global_comm, &num_procs);
@@ -42,12 +28,15 @@ int allgather_bruck_helper(const void* sendbuf,
 
     char* _recvbuf = (char*)recvbuf;
     char* tmpbuf;
-    alloc_ftn((void**)(&tmpbuf), count_bytes*num_procs);
+    MPIL_Alloc((void**)(&tmpbuf), count_bytes*num_procs);
 
     // Sendrecv instead of memcpy, so that it works on the GPUs
-    MPI_Sendrecv(sendbuf, sendcount, sendtype, rank, tag, 
-            tmpbuf, recvcount, recvtype, rank, tag, 
-            comm->global_comm, MPI_STATUS_IGNORE);
+    if (sendbuf != MPI_IN_PLACE)
+    {
+        MPI_Sendrecv(sendbuf, sendcount, sendtype, rank, tag, 
+                tmpbuf, recvcount, recvtype, rank, tag, 
+                comm->global_comm, MPI_STATUS_IGNORE);
+    }
 
     int log_procs = (int)log2(num_procs);
     int log2_num_procs = 1 << log_procs;    
@@ -88,7 +77,7 @@ int allgather_bruck_helper(const void* sendbuf,
                 _recvbuf, recvcount * n_last_group, recvtype, rank, tag,
                 comm->global_comm, MPI_STATUS_IGNORE);
     
-    free_ftn(tmpbuf);
+    MPIL_Free(tmpbuf);
 
     return MPI_SUCCESS;
 }

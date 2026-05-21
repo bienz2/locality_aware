@@ -16,8 +16,33 @@ int allreduce_dissemination_loc(const void* sendbuf,
     if (count == 0)
         return MPI_SUCCESS;
 
-    return allreduce_dissemination_loc_helper(sendbuf, recvbuf, count,
-            datatype, op, comm, MPIL_Alloc, MPIL_Free);
+    int rank, num_procs;
+    MPI_Comm_rank(comm->global_comm, &rank);
+    MPI_Comm_size(comm->global_comm, &num_procs);
+
+    if (comm->local_comm == MPI_COMM_NULL)
+        MPIL_Comm_topo_init(comm);
+
+    int local_rank, ppn;
+    MPI_Comm_rank(comm->local_comm, &local_rank);
+    MPI_Comm_size(comm->local_comm, &ppn);
+
+    int rank_node, num_nodes;
+    MPI_Comm_rank(comm->group_comm, &rank_node);
+    MPI_Comm_size(comm->group_comm, &num_nodes);
+
+    int tag;
+    get_tag(comm, &tag);
+
+    // Locality-Aware only works if ppn is even on all processes
+    if (num_nodes * ppn != num_procs)
+        return allreduce_recursive_doubling(
+                sendbuf, recvbuf, count, datatype, op, comm);
+
+    return allreduce_dissemination_loc_core(
+                   sendbuf, recvbuf, count, datatype, op, 
+                   comm->global_comm, comm->group_comm, 
+                   comm->local_comm, tag);
 }
 
 int allreduce_dissemination_ml(const void* sendbuf,
@@ -30,19 +55,6 @@ int allreduce_dissemination_ml(const void* sendbuf,
     if (count == 0)
         return MPI_SUCCESS;
 
-    return allreduce_dissemination_ml_helper(sendbuf, recvbuf, count, 
-            datatype, op, comm, MPIL_Alloc, MPIL_Free);
-}
-
-int allreduce_dissemination_loc_helper(const void* sendbuf,
-                                         void* recvbuf,
-                                         int count,
-                                         MPI_Datatype datatype,
-                                         MPI_Op op,
-                                         MPIL_Comm* comm,
-                                         MPIL_Alloc_ftn alloc_ftn, 
-                                         MPIL_Free_ftn free_ftn)
-{
     int rank, num_procs;
     MPI_Comm_rank(comm->global_comm, &rank);
     MPI_Comm_size(comm->global_comm, &num_procs);
@@ -63,50 +75,8 @@ int allreduce_dissemination_loc_helper(const void* sendbuf,
 
     // Locality-Aware only works if ppn is even on all processes
     if (num_nodes * ppn != num_procs)
-        return allreduce_recursive_doubling_helper(
-                sendbuf, recvbuf, count, datatype, op, comm,
-                alloc_ftn, free_ftn);
-
-    return allreduce_dissemination_loc_core(
-                   sendbuf, recvbuf, count, datatype, op, 
-                   comm->global_comm, comm->group_comm, 
-                   comm->local_comm, tag,
-                   alloc_ftn, free_ftn);
-}
-
-
-int allreduce_dissemination_ml_helper(const void* sendbuf,
-                                      void* recvbuf,
-                                      int count,
-                                      MPI_Datatype datatype,
-                                      MPI_Op op,
-                                      MPIL_Comm* comm,
-                                      MPIL_Alloc_ftn alloc_ftn,
-                                      MPIL_Free_ftn free_ftn)
-{
-    int rank, num_procs;
-    MPI_Comm_rank(comm->global_comm, &rank);
-    MPI_Comm_size(comm->global_comm, &num_procs);
-
-    if (comm->local_comm == MPI_COMM_NULL)
-        MPIL_Comm_topo_init(comm);
-
-    int local_rank, ppn;
-    MPI_Comm_rank(comm->local_comm, &local_rank);
-    MPI_Comm_size(comm->local_comm, &ppn);
-
-    int rank_node, num_nodes;
-    MPI_Comm_rank(comm->group_comm, &rank_node);
-    MPI_Comm_size(comm->group_comm, &num_nodes);
-
-    int tag;
-    get_tag(comm, &tag);
-
-    // Locality-Aware only works if ppn is even on all processes
-    if (num_nodes * ppn != num_procs)
-        return allreduce_recursive_doubling_helper(
-                sendbuf, recvbuf, count, datatype, op, comm,
-                MPIL_Alloc, MPIL_Free);
+        return allreduce_recursive_doubling(
+                sendbuf, recvbuf, count, datatype, op, comm);
 
     // Convert to leader_comm (4 leaders per node)
     int num_leaders = 4;
@@ -125,8 +95,7 @@ int allreduce_dissemination_ml_helper(const void* sendbuf,
     return allreduce_dissemination_loc_core(
                    sendbuf, recvbuf, count, datatype, op, 
                    comm->global_comm, comm->leader_group_comm, 
-                   comm->leader_comm, tag,
-                   MPIL_Alloc, MPIL_Free);
+                   comm->leader_comm, tag);
 }
 
 int allreduce_dissemination_loc_core(
@@ -138,9 +107,7 @@ int allreduce_dissemination_loc_core(
                         MPI_Comm global_comm, 
                         MPI_Comm group_comm,
                         MPI_Comm local_comm,
-                        int tag,
-                        MPIL_Alloc_ftn alloc_ftn,
-                        MPIL_Free_ftn free_ftn)
+                        int tag)
 {
     int type_size;
     MPI_Type_size(datatype, &type_size);
