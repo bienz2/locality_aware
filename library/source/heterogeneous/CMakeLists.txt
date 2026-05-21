@@ -3,6 +3,7 @@ get_property(GPU_SOURCES GLOBAL PROPERTY GPU_SOURCES_GLOBAL)
 set_property(GLOBAL APPEND PROPERTY GPU_SOURCES_GLOBAL  
 	${CMAKE_CURRENT_SOURCE_DIR}/get_mem_types.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/gpu_alltoall.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/gpu_alltoall_init.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/gpu_allreduce.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/gpu_allreduce_init.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/gpu_check.cpp
@@ -16,6 +17,7 @@ set_property(GLOBAL APPEND PROPERTY GPU_SOURCES_GLOBAL
 target_sources(locality_aware PRIVATE 
 	get_mem_types.cpp
 	gpu_alltoall.cpp
+    gpu_alltoall_init.cpp
     gpu_allreduce.cpp
     gpu_allgather.cpp
     gpu_allreduce_init.cpp

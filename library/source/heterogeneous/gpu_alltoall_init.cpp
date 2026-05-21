@@ -1,7 +1,12 @@
 #include "heterogeneous/gpu_alltoall_init.h"
+#include "heterogeneous/gpu_utils.h"
 
 #include "collective/alltoall_init.h"
 #include "communicator/MPIL_Comm.hpp"
+
+#include "locality_aware.h"
+
+
 
 // ASSUMES 1 CPU CORE PER GPU (Standard for applications)
 int gpu_aware_alltoall_init(alltoall_init_ftn f,
@@ -74,7 +79,7 @@ int gpu_aware_alltoall_rma_init(const void* sendbuf,
                        MPIL_Info* info,
                        MPIL_Request** req_ptr)
 {
-    return gpu_aware_alltoal_initl(alltoall_rma_init,
+    return gpu_aware_alltoall_init(alltoall_rma_init,
                               sendbuf,
                               sendcount,
                               sendtype,
@@ -86,7 +91,7 @@ int gpu_aware_alltoall_rma_init(const void* sendbuf,
                               req_ptr);
 }
 
-int copy_to_cpu_alltoall(alltoall_init_ftn f,
+int copy_to_cpu_alltoall_init(alltoall_init_ftn f,
                          const void* sendbuf,
                          const int sendcount,
                          MPI_Datatype sendtype,
@@ -182,7 +187,7 @@ int copy_to_cpu_alltoall_rma_init(const void* sendbuf,
                        MPIL_Info* info,
                        MPIL_Request** req_ptr)
 {
-    return copy_to_cpu_alltoal_initl(alltoall_rma_init,
+    return copy_to_cpu_alltoall_init(alltoall_rma_init,
                               sendbuf,
                               sendcount,
                               sendtype,
