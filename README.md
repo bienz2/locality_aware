@@ -202,7 +202,7 @@ int MPIL_Neighbor_alltoallv_topo(const void* sendbuf,
                                  MPIL_Topo* topo,
                                  MPIL_Comm* comm);
 
-int MPIL_Set_alltoallv_neighbor_alogorithm(enum NeighborAlltoallvMethod algorithm);
+int MPIL_Set_alltoallv_neighbor_algorithm(enum NeighborAlltoallvMethod algorithm);
 
 enum NeighborAlltoallvMethod
 {
@@ -265,7 +265,7 @@ int MPIL_Neighbor_alltoallv_init_ext_topo(const void* sendbuf,
                                           MPIL_Info* info,
                                           MPIL_Request** request_ptr);
 
-int MPIL_Set_alltoallv_neighbor_init_alogorithm(enum NeighborAlltoallvInitMethod algorithm);
+int MPIL_Set_alltoallv_neighbor_init_algorithm(enum NeighborAlltoallvInitMethod algorithm);
 
 enum NeighborAlltoallvInitMethod
 {

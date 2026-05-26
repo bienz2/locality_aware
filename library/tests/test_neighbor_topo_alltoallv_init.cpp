@@ -119,7 +119,7 @@ int main(int argc, char** argv)
                            std_comm);
 
     // Simple Persistent MPI Advance Implementation
-    MPIL_Set_alltoallv_neighbor_init_alogorithm(NEIGHBOR_ALLTOALLV_INIT_STANDARD);
+    MPIL_Set_alltoallv_neighbor_init_algorithm(NEIGHBOR_ALLTOALLV_INIT_STANDARD);
     MPIL_Neighbor_alltoallv_init_topo(alltoallv_send_vals.data(),
                                       send_data.counts.data(),
                                       send_data.indptr.data(),
@@ -140,7 +140,7 @@ int main(int argc, char** argv)
 
     // Locality-Aware MPI Advance Implementation
     std::fill(mpix_recv_vals.begin(), mpix_recv_vals.end(), 0);
-    MPIL_Set_alltoallv_neighbor_init_alogorithm(NEIGHBOR_ALLTOALLV_INIT_LOCALITY);
+    MPIL_Set_alltoallv_neighbor_init_algorithm(NEIGHBOR_ALLTOALLV_INIT_LOCALITY);
     // neighbor_alltoallv_init_locality_ext(alltoallv_send_vals.data(),
     MPIL_Neighbor_alltoallv_init_ext_topo(alltoallv_send_vals.data(),
                                           send_data.counts.data(),
@@ -164,7 +164,7 @@ int main(int argc, char** argv)
 
     // Partial Locality-Aware MPI Advance Implementation
     std::fill(mpix_recv_vals.begin(), mpix_recv_vals.end(), 0);
-    MPIL_Set_alltoallv_neighbor_init_alogorithm(NEIGHBOR_ALLTOALLV_INIT_LOCALITY);
+    MPIL_Set_alltoallv_neighbor_init_algorithm(NEIGHBOR_ALLTOALLV_INIT_LOCALITY);
     // neighbor_alltoallv_init_locality(alltoallv_send_vals.data(),
     MPIL_Neighbor_alltoallv_init_topo(alltoallv_send_vals.data(),
                                       send_data.counts.data(),

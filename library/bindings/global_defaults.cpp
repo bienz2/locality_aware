@@ -56,13 +56,13 @@ int MPIL_Set_allgather_algorithm(enum AllgatherMethod algorithm)
     return MPI_SUCCESS;
 }
 
-int MPIL_Set_alltoallv_neighbor_alogorithm(enum NeighborAlltoallvMethod algorithm)
+int MPIL_Set_alltoallv_neighbor_algorithm(enum NeighborAlltoallvMethod algorithm)
 {
     mpil_neighbor_alltoallv_implementation = (enum NeighborAlltoallvMethod)algorithm;
     return MPI_SUCCESS;
 }
 
-int MPIL_Set_alltoallv_neighbor_init_alogorithm(
+int MPIL_Set_alltoallv_neighbor_init_algorithm(
     enum NeighborAlltoallvInitMethod algorithm)
 {
     mpil_neighbor_alltoallv_init_implementation =
