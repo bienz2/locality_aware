@@ -2,6 +2,11 @@
 
 #include "communicator/MPIL_Comm.hpp"
 
+#ifdef NUMA_H
+#include <sched.h>
+#include <numa.h>
+#endif
+
 int initialize_comm_object(MPIL_Comm** xcomm_ptr, MPI_Comm global_comm)
 {
     MPIL_Comm* xcomm   = (MPIL_Comm*)malloc(sizeof(MPIL_Comm));

@@ -31,9 +31,9 @@ option(GPU_AWARE "Use GPU-Aware MPI, if GPU support is enabled" ON)
 option(USE_APU "System has APUs" OFF)
 option(ENABLE_UNIT_TESTS "Enable unit testing" ON)
 option(BENCHMARKS "Enable benchmarks" ON)
+option(NUMA_H "Use numa.h to create a local_comm per NUMA" OFF)
 
 set(MPIRUN "mpirun" CACHE STRING "MPIRUN command")
-
 # Find MPI
 find_package(MPI REQUIRED)
 if(MPI_VERSION VERSION_GREATER_EQUAL "4.0")
@@ -44,6 +44,23 @@ set(EXTERNAL_LIBS "MPI::MPI_CXX")
 # Set default language of .cpp files
 set(locality_aware_LANG CXX)
 add_library(locality_aware "")
+
+
+if (NUMA_H) 
+    find_path(NUMA_INCLUDE_DIR NAMES numa.h)
+    if (NOT NUMA_INCLUDE_DIR)
+        message(FATAL_ERROR "NUMA support was requested, but numa.h could not be found")
+    endif()
+
+    find_library(NUMA_LIBRARY NAMES numa)
+    if (NOT NUMA_LIBRARY)
+        message(FATAL_ERROR "NUMA support was requested, but numa library was not found")
+    endif()
+
+    target_link_directories(locality_aware PRIVATE ${NUMA_INCLUDE_DIR})
+    target_link_libraries(locality_aware PUBLIC ${NUMA_LIBRARY})
+    add_definitions(-DNUMA_H)
+endif()
 
 if (USE_CUDA OR USE_HIP)
 	if (GPU_AWARE)
