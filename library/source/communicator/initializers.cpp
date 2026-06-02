@@ -85,9 +85,12 @@ int initialize_topo_communicator(MPIL_Comm* xcomm)
 #ifdef NUMA_H
     int numa_node = numa_node_of_cpu(sched_getcpu());
     MPI_Comm node_comm;
+    int node_rank;
     MPI_Comm_dup(xcomm->local_comm, &node_comm);
     MPI_Comm_free(&(xcomm->local_comm));
-    MPI_Comm_split(node_comm, numa_node, rank, &(xcomm->local_comm));
+    MPI_Comm_rank(node_comm, &node_rank);
+    MPI_Comm_split(node_comm, numa_node, node_rank, &(xcomm->local_comm));
+    MPI_Comm_free(&node_comm);
 #endif
 
 #endif
