@@ -107,6 +107,14 @@ int copy_to_cpu_alltoall_init(alltoall_init_ftn f,
     int num_procs;
     MPI_Comm_size(comm->global_comm, &num_procs);
 
+    int sendsize = 0;
+    int recvsize = 0;
+    for (int i = 0; i < num_procs; i++)
+    {
+        sendsize += sendcounts[i];
+        recvsize += recvcounts[i];
+    }
+
     int send_bytes, recv_bytes;
     MPI_Type_size(sendtype, &send_bytes);
     MPI_Type_size(recvtype, &recv_bytes);
