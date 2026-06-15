@@ -39,6 +39,13 @@ void test_matrix(const char* filename)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
+    MPI_Comm std_comm;
+    MPIL_Comm* xcomm;
+    MPIL_Comm_init(&xcomm, MPI_COMM_WORLD);
+    MPIL_Comm_device_init(xcomm);
+    MPIL_Info* xinfo;
+    MPIL_Info_init(&xinfo);
+
     int gpu_error;
 
     // Read suitesparse matrix
@@ -94,11 +101,6 @@ void test_matrix(const char* filename)
 
     communicate(A, send_vals, mpil, MPI_INT);
 
-    MPI_Comm std_comm;
-    MPIL_Comm* xcomm;
-    MPIL_Comm_init(&xcomm, MPI_COMM_WORLD);
-    MPIL_Info* xinfo;
-    MPIL_Info_init(&xinfo);
 
     MPIL_Topo* topo;
     MPIL_Topo_init(A.recv_comm.n_msgs,
