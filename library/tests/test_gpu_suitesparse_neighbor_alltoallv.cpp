@@ -184,11 +184,8 @@ void test_matrix(const char* filename)
         pmpi, mpil, A.recv_comm.size_msgs);
 
 #if defined(GPU_AWARE)
-
     // Standard MPIL_Nieghbor collective on GPU
     MPIL_Set_alltoallv_neighbor_algorithm(NEIGHBOR_ALLTOALLV_GPU_STANDARD);
-    gpu_error = gpuMemset(gpu_recvbuf, 0, A.recv_comm.size_msgs*sizeof(int));
-    gpu_check(gpu_error);
     MPIL_Neighbor_alltoallv_topo(gpu_sendbuf,
                                  A.send_comm.counts.data(),
                                  A.send_comm.ptr.data(),
@@ -199,16 +196,20 @@ void test_matrix(const char* filename)
                                  MPI_INT,
                                  topo,
                                  xcomm);
-    gpu_error = gpuMemcpy(mpil.data(), gpu_recvbuf, A.recv_comm.size_msgs*sizeof(int),
-            gpuMemcpyDeviceToHost);
+    gpu_error = gpuMemcpyAsync(mpil.data(), gpu_recvbuf, A.recv_comm.size_msgs*sizeof(int),
+            gpuMemcpyDeviceToHost, 0);
+    gpu_check(gpu_error);
+    gpu_error = gpuStreamSynchronize(0);
     gpu_check(gpu_error);
     compare_neighbor_alltoallv_results(
         pmpi, mpil, A.recv_comm.size_msgs);
+    gpu_error = gpuMemsetAsync(gpu_recvbuf, 0, A.recv_comm.size_msgs*sizeof(int), 0);
+    gpu_check(gpu_error);
+    gpu_error = gpuStreamSynchronize(0);
+    gpu_check(gpu_error);
 
     // Locality MPIL_Nieghbor collective on GPU
     MPIL_Set_alltoallv_neighbor_algorithm(NEIGHBOR_ALLTOALLV_GPU_LOCALITY);
-    gpu_error = gpuMemset(gpu_recvbuf, 0, A.recv_comm.size_msgs*sizeof(int));
-    gpu_check(gpu_error);
     MPIL_Neighbor_alltoallv_topo(gpu_sendbuf,
                                  A.send_comm.counts.data(),
                                  A.send_comm.ptr.data(),
@@ -219,19 +220,22 @@ void test_matrix(const char* filename)
                                  MPI_INT,
                                  topo,
                                  xcomm);
-    gpu_error = gpuMemcpy(mpil.data(), gpu_recvbuf, A.recv_comm.size_msgs*sizeof(int),
-            gpuMemcpyDeviceToHost);
+    gpu_error = gpuMemcpyAsync(mpil.data(), gpu_recvbuf, A.recv_comm.size_msgs*sizeof(int),
+            gpuMemcpyDeviceToHost, 0);
+    gpu_check(gpu_error);
+    gpu_error = gpuStreamSynchronize(0);
     gpu_check(gpu_error);
     compare_neighbor_alltoallv_results(
         pmpi, mpil, A.recv_comm.size_msgs);
-
+    gpu_error = gpuMemsetAsync(gpu_recvbuf, 0, A.recv_comm.size_msgs*sizeof(int), 0);
+    gpu_check(gpu_error);
+    gpu_error = gpuStreamSynchronize(0);
+    gpu_check(gpu_error);
 #endif
 
 
     // Standard MPIL_Nieghbor collective on GPU
     MPIL_Set_alltoallv_neighbor_algorithm(NEIGHBOR_ALLTOALLV_CTC_STANDARD);
-    gpu_error = gpuMemset(gpu_recvbuf, 0, A.recv_comm.size_msgs*sizeof(int));
-    gpu_check(gpu_error);
     MPIL_Neighbor_alltoallv_topo(gpu_sendbuf,
                                  A.send_comm.counts.data(),
                                  A.send_comm.ptr.data(),
@@ -242,16 +246,20 @@ void test_matrix(const char* filename)
                                  MPI_INT,
                                  topo,
                                  xcomm);
-    gpu_error = gpuMemcpy(mpil.data(), gpu_recvbuf, A.recv_comm.size_msgs*sizeof(int),
-            gpuMemcpyDeviceToHost);
+    gpu_error = gpuMemcpyAsync(mpil.data(), gpu_recvbuf, A.recv_comm.size_msgs*sizeof(int),
+            gpuMemcpyDeviceToHost, 0);
+    gpu_check(gpu_error);
+    gpu_error = gpuStreamSynchronize(0);
     gpu_check(gpu_error);
     compare_neighbor_alltoallv_results(
         pmpi, mpil, A.recv_comm.size_msgs);
+    gpu_error = gpuMemsetAsync(gpu_recvbuf, 0, A.recv_comm.size_msgs*sizeof(int), 0);
+    gpu_check(gpu_error);
+    gpu_error = gpuStreamSynchronize(0);
+    gpu_check(gpu_error);
 
     // Locality MPIL_Nieghbor collective on GPU
     MPIL_Set_alltoallv_neighbor_algorithm(NEIGHBOR_ALLTOALLV_CTC_LOCALITY);
-    gpu_error = gpuMemset(gpu_recvbuf, 0, A.recv_comm.size_msgs*sizeof(int));
-    gpu_check(gpu_error);
     MPIL_Neighbor_alltoallv_topo(gpu_sendbuf,
                                  A.send_comm.counts.data(),
                                  A.send_comm.ptr.data(),
@@ -262,21 +270,26 @@ void test_matrix(const char* filename)
                                  MPI_INT,
                                  topo,
                                  xcomm);
-    gpu_error = gpuMemcpy(mpil.data(), gpu_recvbuf, A.recv_comm.size_msgs*sizeof(int),
-            gpuMemcpyDeviceToHost);
+    gpu_error = gpuMemcpyAsync(mpil.data(), gpu_recvbuf, A.recv_comm.size_msgs*sizeof(int),
+            gpuMemcpyDeviceToHost, 0);
+    gpu_check(gpu_error);
+    gpu_error = gpuStreamSynchronize(0);
     gpu_check(gpu_error);
     compare_neighbor_alltoallv_results(
         pmpi, mpil, A.recv_comm.size_msgs);
-
+    gpu_error = gpuMemsetAsync(gpu_recvbuf, 0, A.recv_comm.size_msgs*sizeof(int), 0);
+    gpu_check(gpu_error);
+    gpu_error = gpuStreamSynchronize(0);
+    gpu_check(gpu_error);
 
     if (A.recv_comm.size_msgs)
     {
-        gpu_error = gpuFree(&gpu_recvbuf);
+        gpu_error = gpuFree(gpu_recvbuf);
         gpu_check(gpu_error);
     }
     if (A.send_comm.size_msgs)
     {
-        gpu_error = gpuFree(&gpu_sendbuf);
+        gpu_error = gpuFree(gpu_sendbuf);
         gpu_check(gpu_error);
     }    
 
