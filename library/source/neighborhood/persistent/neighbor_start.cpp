@@ -5,6 +5,10 @@
 #include "neighborhood/neighborhood_init.h"
 #include "persistent/MPIL_Request.h"
 
+#if defined(GPU)
+#include "heterogeneous/gpu_utils.h"
+#endif
+
 int neighbor_start(MPIL_Request* request)
 {
     if (request == NULL)

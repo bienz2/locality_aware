@@ -1,5 +1,9 @@
 #include "locality_aware.h"
 
+#if defined(GPU)
+#include "heterogeneous/gpu_utils.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,9 +22,11 @@ int MPIL_Free(void* pointer)
 #if defined(GPU)
 int MPIL_GPU_Free(void* pointer)
 {
+    int gpu_error;
     if (pointer != nullptr)
     {
-        gpuFree(pointer);
+        gpu_error = gpuFree(pointer);
+        gpu_check(gpu_error);
     }
 
     return MPI_SUCCESS;

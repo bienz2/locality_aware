@@ -2,6 +2,10 @@
 #include "locality_aware.h"
 #include "neighborhood/neighbor.h"
 
+#if defined(GPU)
+#include "heterogeneous/gpu_neighbor_collective.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -54,6 +58,7 @@ int MPIL_Neighbor_alltoallv_topo(const void* sendbuf,
             break;
     }
 
+#if defined(GPU)
     if (gpu_aware)
     {
         return gpu_aware_neighbor_collective(method,
@@ -82,6 +87,8 @@ int MPIL_Neighbor_alltoallv_topo(const void* sendbuf,
                 topo,
                 comm);
     }
+#endif
+
     return method(sendbuf,
                   sendcounts,
                   sdispls,

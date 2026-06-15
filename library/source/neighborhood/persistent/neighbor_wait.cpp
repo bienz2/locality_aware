@@ -5,6 +5,10 @@
 #include "neighborhood/neighborhood_init.h"
 #include "persistent/MPIL_Request.h"
 
+#if defined(GPU)
+#include "heterogeneous/gpu_utils.h"
+#endif
+
 // Wait for locality-aware requests
 // 1. Wait for global
 // 2. Start and wait for local_R

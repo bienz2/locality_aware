@@ -1,5 +1,9 @@
 #include "locality_aware.h"
 
+#if defined(GPU)
+#include "heterogeneous/gpu_utils.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -21,15 +25,18 @@ int MPIL_Alloc(void** pointer, const int bytes)
 #if defined(GPU)
 int MPIL_GPU_Alloc(void** pointer, const int bytes)
 {
+    int gpu_error;
     if (bytes == 0)
     {
         *pointer = nullptr;
     }
     else
     {
-        gpuMalloc((void**)pointer, bytes);
+        gpu_error = gpuMalloc((void**)pointer, bytes);
+        gpu_check(gpu_error);
     }
-    gpuDeviceSynchronize();
+    gpu_error = gpuDeviceSynchronize();
+    gpu_check(gpu_error);
 
     return MPI_SUCCESS;
 }
