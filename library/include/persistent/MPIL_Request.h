@@ -76,6 +76,8 @@ typedef struct _MPIL_Request
     const void* gpu_sendbuf;
     /** @brief Allocated cpu-based receive buffers for copy-to-cpu algorithms **/
     void* gpu_recvbuf;
+    int gpu_size_sends;
+    int gpu_size_recvs;
 #endif
     /** @brief Function pointer to MPIL_Start or MPIL_neighbor_start **/
     int (*start_function)(struct _MPIL_Request* request);

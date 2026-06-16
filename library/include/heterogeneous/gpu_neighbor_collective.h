@@ -142,8 +142,8 @@ int copy_to_cpu_neighbor_alltoallv_init(Ftn f,
     request->recvbuf = cpu_recvbuf;
     request->gpu_sendbuf = sendbuf;
     request->gpu_recvbuf = recvbuf;
-    request->size_sends = send_size * send_bytes;
-    request->size_recvs = recv_size * recv_bytes;
+    request->gpu_size_sends = send_size * send_bytes;
+    request->gpu_size_recvs = recv_size * recv_bytes;
 
     return ierr;
 }
@@ -201,8 +201,8 @@ int copy_to_cpu_neighbor_alltoallv_init_ext(Ftn f,
     request->recvbuf = cpu_recvbuf;
     request->gpu_sendbuf = sendbuf;
     request->gpu_recvbuf = recvbuf;
-    request->size_sends = send_size * send_bytes;
-    request->size_recvs = recv_size * recv_bytes;
+    request->gpu_size_sends = send_size * send_bytes;
+    request->gpu_size_recvs = recv_size * recv_bytes;
 
     return ierr;
 }

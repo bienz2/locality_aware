@@ -123,9 +123,9 @@ int allreduce_recursive_doubling_start(MPIL_Request* request)
 if (request->gpu_sendbuf)
 {
 #if defined(APU)
-    memcpy(request->tmp_gpubuf, request->gpu_sendbuf, request->size_sends);
+    memcpy(request->tmp_gpubuf, request->gpu_sendbuf, request->gpu_size_sends);
 #else
-    gpu_error = gpuMemcpyAsync(request->tmp_gpubuf, request->gpu_sendbuf, request->size_sends, 
+    gpu_error = gpuMemcpyAsync(request->tmp_gpubuf, request->gpu_sendbuf, request->gpu_size_sends, 
             gpuMemcpyDeviceToHost, 0);
     gpu_check(gpu_error);
     gpu_error = gpuStreamSynchronize(0);
@@ -192,9 +192,9 @@ if (request->gpu_recvbuf)
 {
     int gpu_error;
 #if defined(APU)
-    memcpy(request->gpu_recvbuf, request->recvbuf, request->size_recvs);
+    memcpy(request->gpu_recvbuf, request->recvbuf, request->gpu_size_recvs);
 #else
-    gpu_error = gpuMemcpyAsync(request->gpu_recvbuf, request->recvbuf, request->size_recvs, 
+    gpu_error = gpuMemcpyAsync(request->gpu_recvbuf, request->recvbuf, request->gpu_size_recvs, 
             gpuMemcpyHostToDevice, 0);
     gpu_check(gpu_error);
     gpu_error = gpuStreamSynchronize(0);

@@ -60,9 +60,9 @@ int neighbor_wait(MPIL_Request* request, MPI_Status* status)
     {
         int gpu_error;
 #if defined(APU)
-        memcpy(request->gpu_recvbuf, request->recvbuf, request->size_recvs);
+        memcpy(request->gpu_recvbuf, request->recvbuf, request->gpu_size_recvs);
 #else
-        gpu_error = gpuMemcpyAsync(request->gpu_recvbuf, request->recvbuf, request->size_recvs, 
+        gpu_error = gpuMemcpyAsync(request->gpu_recvbuf, request->recvbuf, request->gpu_size_recvs, 
                 gpuMemcpyHostToDevice, 0);
         gpu_check(gpu_error);
         gpu_error = gpuStreamSynchronize(0);

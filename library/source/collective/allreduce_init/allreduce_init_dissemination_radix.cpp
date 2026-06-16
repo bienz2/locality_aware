@@ -144,10 +144,10 @@ if (request->gpu_sendbuf)
     int gpu_error;
 #if defined(APU)
     memcpy(request->tmp_gpubuf, request->gpu_sendbuf, 
-            request->size_sends);
+            request->gpu_size_sends);
 #else
     gpu_error = gpuMemcpyAsync(request->tmp_gpubuf, request->gpu_sendbuf, 
-            request->size_sends, gpuMemcpyDeviceToHost, 0);
+            request->gpu_size_sends, gpuMemcpyDeviceToHost, 0);
     gpu_check(gpu_error);
     gpu_error = gpuStreamSynchronize(0);
     gpu_check(gpu_error);
@@ -228,10 +228,10 @@ if (request->gpu_recvbuf)
 {
 #if defined(APU)
     memcpy(request->gpu_recvbuf, request->recvbuf, 
-            request->size_recvs);
+            request->gpu_size_recvs);
 #else
     gpu_error = gpuMemcpyAsync(request->gpu_recvbuf, request->recvbuf, 
-            request->size_recvs, gpuMemcpyHostToDevice, 0);
+            request->gpu_size_recvs, gpuMemcpyHostToDevice, 0);
     gpu_check(gpu_error);
     gpu_error = gpuStreamSynchronize(0);
     gpu_check(gpu_error);

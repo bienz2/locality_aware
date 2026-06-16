@@ -275,8 +275,8 @@ int copy_to_cpu_allreduce_init(Ftn f,
     request->tmp_gpubuf = cpu_sendbuf;
     request->gpu_sendbuf = sendbuf;
     request->gpu_recvbuf = recvbuf;
-    request->size_sends = count*bytes;
-    request->size_recvs = count*bytes;
+    request->gpu_size_sends = count*bytes;
+    request->gpu_size_recvs = count*bytes;
 
     return ierr;
 }
@@ -318,8 +318,8 @@ int copy_to_cpu_allgather_init(Ftn f,
     request->tmp_gpubuf = cpu_sendbuf;
     request->gpu_sendbuf = sendbuf;
     request->gpu_recvbuf = recvbuf;
-    request->size_sends = total_bytes_s;
-    request->size_recvs = total_bytes_r;
+    request->gpu_size_sends = total_bytes_s;
+    request->gpu_size_recvs = total_bytes_r;
 
     return MPI_SUCCESS;
 }
@@ -360,8 +360,8 @@ int copy_to_cpu_alltoall_init(Ftn f,
     request->tmp_gpubuf = cpu_sendbuf;
     request->gpu_sendbuf = sendbuf;
     request->gpu_recvbuf = recvbuf;
-    request->size_sends = total_bytes_s;
-    request->size_recvs = total_bytes_r;
+    request->gpu_size_sends = total_bytes_s;
+    request->gpu_size_recvs = total_bytes_r;
 
     return ierr;
 }
@@ -414,8 +414,8 @@ int copy_to_cpu_alltoallv_init(Ftn f,
     request->tmp_gpubuf = cpu_sendbuf;
     request->gpu_sendbuf = sendbuf;
     request->gpu_recvbuf = recvbuf;
-    request->size_sends = total_bytes_s;
-    request->size_recvs = total_bytes_r;
+    request->gpu_size_sends = total_bytes_s;
+    request->gpu_size_recvs = total_bytes_r;
 
     return ierr;
 }

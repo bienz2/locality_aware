@@ -40,6 +40,8 @@ void init_request(MPIL_Request** request_ptr)
     request->tmp_gpubuf = NULL;
     request->gpu_sendbuf = NULL;
     request->gpu_recvbuf = NULL;
+    request->gpu_size_sends = 0;
+    request->gpu_size_recvs = 0;
 #endif
 
     *request_ptr = request;

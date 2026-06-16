@@ -21,9 +21,9 @@ int neighbor_start(MPIL_Request* request)
     if (request->gpu_sendbuf)
     {
 #if defined(APU)
-        memcpy(request->tmp_gpubuf, request->gpu_sendbuf, request->size_sends);
+        memcpy(request->tmp_gpubuf, request->gpu_sendbuf, request->gpu_size_sends);
 #else
-        gpu_error = gpuMemcpyAsync(request->tmp_gpubuf, request->gpu_sendbuf, request->size_sends, 
+        gpu_error = gpuMemcpyAsync(request->tmp_gpubuf, request->gpu_sendbuf, request->gpu_size_sends, 
                 gpuMemcpyDeviceToHost, 0);
         gpu_check(gpu_error);
         gpu_error = gpuStreamSynchronize(0);
