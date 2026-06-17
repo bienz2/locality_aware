@@ -1,6 +1,7 @@
 #include "collective/alltoall.h"
 #include "collective/collective.h"
 #include "gpu_alltoall.h"
+#include <string.h>
 
 // ASSUMES 1 CPU CORE PER GPU (Standard for applications)
 int gpu_aware_alltoall(alltoall_ftn f,

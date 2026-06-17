@@ -10,14 +10,14 @@
 
 #define NODES 2 //number of nodes
 #define SPN 4   //number of sockets per node
-#define PPNUMA 16 // number of processes per NUMA region
-#define PPS 16  //number of processes per socket
-#define PPN 64 //number of processes per node
+#define PPNUMA 18 // number of processes per NUMA region
+#define PPS 18  //number of processes per socket
+#define PPN 72 //number of processes per node
 
-#define GPNUMA 1
-#define GPS 1
-#define GPN 4
-#define PPG 16
+#define GPNUMA 3
+#define GPS 3
+#define GPN 12
+#define PPG 6
 
 #define MATCHING 0
 
