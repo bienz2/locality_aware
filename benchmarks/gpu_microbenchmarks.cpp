@@ -14,10 +14,10 @@
 #define PPS 18  //number of processes per socket
 #define PPN 72 //number of processes per node
 
-#define GPNUMA 3
-#define GPS 3
-#define GPN 12
-#define PPG 6
+#define GPNUMA 1
+#define GPS 1
+#define GPN 4
+#define PPG 18
 
 #define MATCHING 0
 
@@ -41,21 +41,25 @@ void pong_gpu_aware(char* sendbuf_d, char* sendbuf_h, char* recvbuf_d, char* rec
 void ping_copy_to_cpu(char* sendbuf_d, char* sendbuf_h, char* recvbuf_d, char* recvbuf_h, int size, int proc,
         gpuStream_t stream, MPI_Comm comm)
 {
-    gpuMemcpyAsync(sendbuf_h, sendbuf_d, size*sizeof(char), gpuMemcpyDeviceToHost, stream);
-    gpuStreamSynchronize(stream);
+//    gpuMemcpyAsync(sendbuf_h, sendbuf_d, size*sizeof(char), gpuMemcpyDeviceToHost, stream);
+//    gpuStreamSynchronize(stream);
+    memcpy(sendbuf_h, sendbuf_d, size*sizeof(char));
     MPI_Send(sendbuf_h, size, MPI_CHAR, proc, 0, comm);
     MPI_Recv(recvbuf_h, size, MPI_CHAR, proc, 0, comm, MPI_STATUS_IGNORE);
-    gpuMemcpyAsync(recvbuf_d, recvbuf_h, size*sizeof(char), gpuMemcpyHostToDevice, stream);
-    gpuStreamSynchronize(stream);
+    memcpy(recvbuf_d, recvbuf_h, size*sizeof(char));
+    //gpuMemcpyAsync(recvbuf_d, recvbuf_h, size*sizeof(char), gpuMemcpyHostToDevice, stream);
+    //gpuStreamSynchronize(stream);
 }
 void pong_copy_to_cpu(char* sendbuf_d, char* sendbuf_h, char* recvbuf_d, char* recvbuf_h, int size, int proc,
         gpuStream_t stream, MPI_Comm comm)
 {
     MPI_Recv(recvbuf_h, size, MPI_CHAR, proc, 0, comm, MPI_STATUS_IGNORE);
-    gpuMemcpyAsync(recvbuf_d, recvbuf_h, size*sizeof(char), gpuMemcpyHostToDevice, stream);
-    gpuStreamSynchronize(stream);
-    gpuMemcpyAsync(sendbuf_h, sendbuf_d, size*sizeof(char), gpuMemcpyDeviceToHost, stream);
-    gpuStreamSynchronize(stream);
+    memcpy(recvbuf_d, recvbuf_h, size*sizeof(char));
+    //gpuMemcpyAsync(recvbuf_d, recvbuf_h, size*sizeof(char), gpuMemcpyHostToDevice, stream);
+    //gpuStreamSynchronize(stream);
+    //gpuMemcpyAsync(sendbuf_h, sendbuf_d, size*sizeof(char), gpuMemcpyDeviceToHost, stream);
+    //gpuStreamSynchronize(stream);
+    memcpy(sendbuf_h, sendbuf_d, size*sizeof(char));
     MPI_Send(sendbuf_h, size, MPI_CHAR, proc, 0, comm);
 }
 
@@ -396,7 +400,7 @@ int main(int argc, char* argv[])
     standard_ping_pong_gpu(ping_gpu_aware, pong_gpu_aware, max_p, sendbuf_d, NULL,
             recvbuf_d, NULL, stream, MPI_COMM_WORLD);
 
-    if (rank == 0) printf("Running standard Copy-to-CPU benchmarks\n");
+    if (rank == 0) printf("Running standard (MEM)Copy-to-CPU benchmarks\n");
     standard_ping_pong_gpu(ping_copy_to_cpu, pong_copy_to_cpu, max_p, sendbuf_d, sendbuf_h,
             recvbuf_d, recvbuf_h, stream, MPI_COMM_WORLD);
 
@@ -404,7 +408,7 @@ int main(int argc, char* argv[])
     multiproc_ping_pong_gpu(ping_gpu_aware, pong_gpu_aware, max_p, sendbuf_d, sendbuf_h,
             recvbuf_d, recvbuf_h, stream, MPI_COMM_WORLD);
 
-    if (rank == 0) printf("Running multi-proc Copy-to-CPU benchmarks\n");
+    if (rank == 0) printf("Running multi-proc (MEM)Copy-to-CPU benchmarks\n");
     multiproc_ping_pong_gpu(ping_copy_to_cpu, pong_copy_to_cpu, max_p, sendbuf_d, sendbuf_h,
             recvbuf_d, recvbuf_h, stream, MPI_COMM_WORLD);
 
