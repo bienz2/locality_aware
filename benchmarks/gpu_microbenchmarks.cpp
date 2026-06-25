@@ -10,16 +10,19 @@
 
 #define NODES 2 //number of nodes
 #define SPN 4   //number of sockets per node
-#define PPNUMA 18 // number of processes per NUMA region
-#define PPS 18  //number of processes per socket
-#define PPN 72 //number of processes per node
+#define PPNUMA 6 // number of processes per NUMA region
+#define PPS 6  //number of processes per socket
+#define PPN 24 //number of processes per node
 
-#define GPNUMA 1
-#define GPS 1
-#define GPN 4
-#define PPG 18
+#define GPNUMA 6
+#define GPS 6
+#define GPN 24
+#define PPG 1
+
 
 #define MATCHING 0
+#define MULTPPN 0
+#define C2C 0
 
 
 typedef void (*pingpong_ftn)(char*, char*, char*, char*, int, int, gpuStream_t stream, MPI_Comm);
@@ -352,7 +355,15 @@ int main(int argc, char* argv[])
     MPI_Comm_split_type(MPI_COMM_WORLD, MPI_COMM_TYPE_SHARED, rank, MPI_INFO_NULL, &local_comm);
     MPI_Comm_rank(local_comm, &local_rank);
 
-    gpuSetDevice(local_rank % GPN);
+    int num_gpus;
+    gpuGetDeviceCount(&num_gpus);
+
+    if (num_gpus != 1)
+    {
+        if (rank == 0) printf("NUM GPUS %d\n", num_gpus);
+        MPI_Abort(MPI_COMM_WORLD, -1);
+    }
+    gpuSetDevice(0);
 
     char *sendbuf_d, *recvbuf_d;
     char *sendbuf_h, *recvbuf_h;
@@ -400,10 +411,13 @@ int main(int argc, char* argv[])
     standard_ping_pong_gpu(ping_gpu_aware, pong_gpu_aware, max_p, sendbuf_d, NULL,
             recvbuf_d, NULL, stream, MPI_COMM_WORLD);
 
-    if (rank == 0) printf("Running standard (MEM)Copy-to-CPU benchmarks\n");
+#if C2C
+    if (rank == 0) printf("Running standard Copy-to-CPU benchmarks\n");
     standard_ping_pong_gpu(ping_copy_to_cpu, pong_copy_to_cpu, max_p, sendbuf_d, sendbuf_h,
             recvbuf_d, recvbuf_h, stream, MPI_COMM_WORLD);
+#endif
 
+#if MULTPPN
     if (rank == 0) printf("Running multi-proc GPU-Aware benchmarks\n");
     multiproc_ping_pong_gpu(ping_gpu_aware, pong_gpu_aware, max_p, sendbuf_d, sendbuf_h,
             recvbuf_d, recvbuf_h, stream, MPI_COMM_WORLD);
@@ -411,6 +425,7 @@ int main(int argc, char* argv[])
     if (rank == 0) printf("Running multi-proc (MEM)Copy-to-CPU benchmarks\n");
     multiproc_ping_pong_gpu(ping_copy_to_cpu, pong_copy_to_cpu, max_p, sendbuf_d, sendbuf_h,
             recvbuf_d, recvbuf_h, stream, MPI_COMM_WORLD);
+#endif
 
 
     gpuStreamDestroy(stream);

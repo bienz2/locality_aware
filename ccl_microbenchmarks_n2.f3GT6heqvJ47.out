@@ -1,0 +1,85 @@
+0: CCL Microbenchmarks - 1 Cores per Rank:
+0: Inter-GPU Microbenchmarks will be run with the following:
+0: # Processes per NUMA: 1
+0: # Processes per socket: 1
+0: # Processes per node: 4
+0: # of nodes: 2
+0: # GPUs per NUMA: 1
+0: # GPUs per socket: 1
+0: # GPUs per node: 4
+0: # Processes per GPU: 1
+0: If these are incorrect, edit the defines at the top of benchmarks/microbenchmarks.cpp
+0: RCCL version : 2.22.3-HEAD:271856d
+0: HIP version  : 6.4.43482-0f2d60242
+0: ROCm version : 6.4.0.0-47-73dae9c
+0: Hostname     : tuolumne2102
+0: Librccl path : /usr/tce/packages/rocmcc/rocmcc-6.4.0-magic/lib/librccl.so.1
+0: GPU-Aware intra-NUMA tests will not be run because GPNUMA is set to 1.
+0: intra-socket tests will not be run because GPS is set to 1.
+0: Running standard GPU-Aware benchmarks
+0: Not measuring GPU-Aware intra-NUMA, because GPNUMA is set to 1
+0: Not measuring GPU-Aware intra-socket, because GPS is set to 1
+0: GPU-Aware On-Node, Off-Socket Ping-Pong:
+0: Size 1: 1.344529e-05
+0: Size 2: 2.453352e-05
+0: Size 4: 2.152047e-05
+0: Size 8: 2.119361e-05
+0: Size 16: 2.143098e-05
+0: Size 32: 2.131090e-05
+0: Size 64: 2.127056e-05
+0: Size 128: 2.147381e-05
+0: Size 256: 2.159724e-05
+0: Size 512: 2.100268e-05
+0: Size 1024: 2.116666e-05
+0: Size 2048: 2.145460e-05
+0: Size 4096: 2.192064e-05
+0: Size 8192: 2.306837e-05
+0: Size 16384: 2.794971e-05
+0: Size 32768: 2.883162e-05
+0: Size 65536: 2.741094e-05
+0: Size 131072: 2.839677e-05
+0: Size 262144: 3.954979e-05
+0: Size 524288: 5.344343e-05
+0: Size 1048576: 8.131199e-05
+0: Size 2097152: 1.357093e-04
+0: Size 4194304: 2.480450e-04
+0: Size 8388608: 4.718603e-04
+0: Size 16777216: 9.159498e-04
+0: Size 33554432: 1.806160e-03
+0: Size 67108864: 3.569782e-03
+0: Size 134217728: 7.121032e-03
+0: Size 268435456: 1.419364e-02
+0: Size 536870912: 2.862907e-02
+0: 
+0: GPU-Aware Off-Node Ping-Pong:
+0: Size 1: 2.936993e-05
+0: Size 2: 2.938491e-05
+0: Size 4: 2.937219e-05
+0: Size 8: 2.941998e-05
+0: Size 16: 2.886460e-05
+0: Size 32: 2.907234e-05
+0: Size 64: 2.882091e-05
+0: Size 128: 3.010742e-05
+0: Size 256: 2.995557e-05
+0: Size 512: 3.012725e-05
+0: Size 1024: 3.018771e-05
+0: Size 2048: 3.030614e-05
+0: Size 4096: 3.088853e-05
+0: Size 8192: 3.277465e-05
+0: Size 16384: 3.438640e-05
+0: Size 32768: 4.267106e-05
+0: Size 65536: 4.977881e-05
+0: Size 131072: 5.593072e-05
+0: Size 262144: 6.746889e-05
+0: Size 524288: 8.946298e-05
+0: Size 1048576: 1.415351e-04
+0: Size 2097152: 2.278522e-04
+0: Size 4194304: 4.026949e-04
+0: Size 8388608: 7.601546e-04
+0: Size 16777216: 1.464605e-03
+0: Size 33554432: 2.873894e-03
+0: Size 67108864: 5.696603e-03
+0: Size 134217728: 1.133254e-02
+0: Size 268435456: 2.261065e-02
+0: Size 536870912: 4.516634e-02
+0: 
