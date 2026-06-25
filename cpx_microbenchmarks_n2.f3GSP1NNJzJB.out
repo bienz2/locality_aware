@@ -1,0 +1,105 @@
+0: GPU Microbenchmarks:
+0: Inter-CPU Microbenchmarks will be run with the following:
+0: # Processes per NUMA: 6
+0: # Processes per socket: 6
+0: # Processes per node: 24
+0: # of nodes: 2
+0: Inter-GPU Microbenchmarks will be run with the following:
+0: # GPUs per NUMA: 6
+0: # GPUs per socket: 6
+0: # GPUs per node: 24
+0: # Processes per GPU: 1
+0: If these are incorrect, edit the defines at the top of benchmarks/microbenchmarks.cpp
+0: intra-socket tests will not be run because there is only one NUMA per socket.  The timings will be gathered in inter-NUMA tests.
+0: Running standard GPU-Aware benchmarks
+0: GPU-Aware On-NUMA Ping-Pong:
+0: Size 1: 2.215827e-06
+0: Size 2: 2.219135e-06
+0: Size 4: 2.219393e-06
+0: Size 8: 2.221604e-06
+0: Size 16: 2.220263e-06
+0: Size 32: 2.233139e-06
+0: Size 64: 2.412953e-06
+0: Size 128: 2.341006e-06
+0: Size 256: 3.686486e-06
+0: Size 512: 3.755441e-06
+0: Size 1024: 7.313915e-06
+0: Size 2048: 7.346451e-06
+0: Size 4096: 7.417888e-06
+0: Size 8192: 1.692752e-05
+0: Size 16384: 1.738778e-05
+0: Size 32768: 1.760706e-05
+0: Size 65536: 1.880250e-05
+0: Size 131072: 2.113881e-05
+0: Size 262144: 2.572721e-05
+0: Size 524288: 3.473496e-05
+0: Size 1048576: 5.298933e-05
+0: Size 2097152: 8.920457e-05
+0: Size 4194304: 1.614246e-04
+0: Size 8388608: 3.049883e-04
+0: Size 16777216: 5.920590e-04
+0: Size 33554432: 1.166896e-03
+0: Size 67108864: 2.314589e-03
+0: Size 134217728: 4.609765e-03
+0: 
+0: Not measuring GPU-Aware intra-socket because same as intra-NUMA
+0: GPU-Aware On-Node, Off-Socket Ping-Pong:
+0: Size 1: 4.482125e-06
+0: Size 2: 4.476334e-06
+0: Size 4: 4.408763e-06
+0: Size 8: 4.423492e-06
+0: Size 16: 3.912954e-06
+0: Size 32: 4.634597e-06
+0: Size 64: 4.935698e-06
+0: Size 128: 4.662125e-06
+0: Size 256: 6.525055e-06
+0: Size 512: 6.568350e-06
+0: Size 1024: 1.019754e-05
+0: Size 2048: 1.071112e-05
+0: Size 4096: 1.035375e-05
+0: Size 8192: 2.125431e-05
+0: Size 16384: 2.159627e-05
+0: Size 32768: 2.160760e-05
+0: Size 65536: 2.273782e-05
+0: Size 131072: 2.401287e-05
+0: Size 262144: 2.844547e-05
+0: Size 524288: 3.753448e-05
+0: Size 1048576: 5.571600e-05
+0: Size 2097152: 9.196429e-05
+0: Size 4194304: 1.642409e-04
+0: Size 8388608: 3.088615e-04
+0: Size 16777216: 5.961211e-04
+0: Size 33554432: 1.170141e-03
+0: Size 67108864: 2.317869e-03
+0: Size 134217728: 4.612542e-03
+0: 
+0: GPU-Aware Off-Node Ping-Pong:
+0: Size 1: 4.591720e-06
+0: Size 2: 4.579235e-06
+0: Size 4: 4.579927e-06
+0: Size 8: 4.585237e-06
+0: Size 16: 4.604338e-06
+0: Size 32: 4.625101e-06
+0: Size 64: 4.651885e-06
+0: Size 128: 5.810517e-06
+0: Size 256: 6.152329e-06
+0: Size 512: 6.264780e-06
+0: Size 1024: 6.413993e-06
+0: Size 2048: 6.896203e-06
+0: Size 4096: 7.179614e-06
+0: Size 8192: 7.937256e-06
+0: Size 16384: 9.563856e-06
+0: Size 32768: 1.649781e-05
+0: Size 65536: 1.930465e-05
+0: Size 131072: 2.488494e-05
+0: Size 262144: 3.569972e-05
+0: Size 524288: 5.707190e-05
+0: Size 1048576: 9.998062e-05
+0: Size 2097152: 1.860778e-04
+0: Size 4194304: 3.588172e-04
+0: Size 8388608: 7.043338e-04
+0: Size 16777216: 1.395193e-03
+0: Size 33554432: 2.776685e-03
+0: Size 67108864: 5.539407e-03
+0: Size 134217728: 1.106474e-02
+0: 
