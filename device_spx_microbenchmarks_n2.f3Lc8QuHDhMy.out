@@ -1,0 +1,149 @@
+0: GPU Microbenchmarks:
+0: Inter-CPU Microbenchmarks will be run with the following:
+0: # Processes per NUMA: 1
+0: # Processes per socket: 1
+0: # Processes per node: 4
+0: # of nodes: 2
+0: If these are incorrect, edit the defines at the top of benchmarks/microbenchmarks.cpp
+0: intra-NUMA tests will not be run because PPNUMA is set to 1.
+0: intra-socket tests will not be run because PPS is set to 1.
+0: 
+0: 
+0: Running standard ping-pongs
+0: 
+0: Not measuring intra-NUMA, because PPNUMA is set to 1
+0: Not measuring intra-socket, because PPS is set to 1
+0: On-Node, Off-Socket Ping-Pong:
+0: Size 1: 4.084792e-06
+0: Size 2: 4.010816e-06
+0: Size 4: 3.978846e-06
+0: Size 8: 3.982239e-06
+0: Size 16: 3.485775e-06
+0: Size 32: 4.192684e-06
+0: Size 64: 4.576815e-06
+0: Size 128: 4.431925e-06
+0: Size 256: 6.054545e-06
+0: Size 512: 6.673798e-06
+0: Size 1024: 9.900660e-06
+0: Size 2048: 9.954433e-06
+0: Size 4096: 9.964463e-06
+0: Size 8192: 2.258535e-05
+0: Size 16384: 2.311447e-05
+0: Size 32768: 2.381612e-05
+0: Size 65536: 2.486166e-05
+0: Size 131072: 2.692683e-05
+0: Size 262144: 3.085117e-05
+0: Size 524288: 3.975981e-05
+0: Size 1048576: 5.795330e-05
+0: Size 2097152: 9.408381e-05
+0: Size 4194304: 1.663390e-04
+0: Size 8388608: 3.099461e-04
+0: Size 16777216: 5.962113e-04
+0: Size 33554432: 1.170034e-03
+0: Size 67108864: 2.318354e-03
+0: Size 134217728: 4.612474e-03
+0: Size 268435456: 9.200887e-03
+0: Size 536870912: 1.837756e-02
+0: 
+0: Off-Node Ping-Pong:
+0: Size 1: 4.517502e-06
+0: Size 2: 4.494449e-06
+0: Size 4: 4.485925e-06
+0: Size 8: 4.485769e-06
+0: Size 16: 4.492654e-06
+0: Size 32: 4.493005e-06
+0: Size 64: 4.489437e-06
+0: Size 128: 5.592996e-06
+0: Size 256: 5.816215e-06
+0: Size 512: 5.865601e-06
+0: Size 1024: 5.947942e-06
+0: Size 2048: 6.132504e-06
+0: Size 4096: 6.394391e-06
+0: Size 8192: 7.150254e-06
+0: Size 16384: 8.439809e-06
+0: Size 32768: 1.480681e-05
+0: Size 65536: 1.761495e-05
+0: Size 131072: 2.318814e-05
+0: Size 262144: 3.401600e-05
+0: Size 524288: 5.571228e-05
+0: Size 1048576: 9.925727e-05
+0: Size 2097152: 1.856727e-04
+0: Size 4194304: 3.584922e-04
+0: Size 8388608: 7.039899e-04
+0: Size 16777216: 1.394853e-03
+0: Size 33554432: 2.776302e-03
+0: Size 67108864: 5.539041e-03
+0: Size 134217728: 1.106452e-02
+0: Size 268435456: 2.211510e-02
+0: Size 536870912: 4.421586e-02
+0: 
+0: Running standard many message tests (with ordered tags)
+0: On-NUMA Multi Ping-Pong:
+0: Size 1: 1.732265e-07
+0: Size 2: 2.921651e-07
+0: Size 4: 5.432734e-07
+0: Size 8: 1.033254e-06
+0: Size 16: 2.059210e-06
+0: Size 32: 4.147361e-06
+0: Size 64: 8.362707e-06
+0: Size 128: 1.917838e-05
+0: Size 256: 4.206288e-05
+0: Size 512: 8.787752e-05
+0: Size 1024: 1.925236e-04
+0: Size 2048: 4.216492e-04
+0: Size 4096: 8.670681e-04
+0: Size 8192: 1.742806e-03
+0: Size 16384: 3.561941e-03
+0: 
+0: On-Socket Multi Ping-Pong:
+0: Size 1: 1.733293e-07
+0: Size 2: 2.947539e-07
+0: Size 4: 5.412411e-07
+0: Size 8: 1.033345e-06
+0: Size 16: 2.048421e-06
+0: Size 32: 4.194093e-06
+0: Size 64: 8.519977e-06
+0: Size 128: 1.926656e-05
+0: Size 256: 4.208310e-05
+0: Size 512: 8.760769e-05
+0: Size 1024: 1.884763e-04
+0: Size 2048: 4.209817e-04
+0: Size 4096: 8.665752e-04
+0: Size 8192: 1.738206e-03
+0: Size 16384: 3.564299e-03
+0: 
+0: On-Node, Off-Socket Multi Ping-Pong:
+0: Size 1: 3.826125e-06
+0: Size 2: 5.778905e-06
+0: Size 4: 8.800382e-06
+0: Size 8: 1.900554e-05
+0: Size 16: 3.654911e-05
+0: Size 32: 7.096373e-05
+0: Size 64: 1.395427e-04
+0: Size 128: 2.723636e-04
+0: Size 256: 5.402546e-04
+0: Size 512: 1.068791e-03
+0: Size 1024: 2.081244e-03
+0: Size 2048: 3.625002e-03
+0: Size 4096: 7.255128e-03
+0: Size 8192: 1.458878e-02
+0: Size 16384: 2.946594e-02
+0: 
+0: Off-Node Multi Ping-Pong:
+0: Size 1: 4.523158e-06
+0: Size 2: 7.401220e-06
+0: Size 4: 1.058982e-05
+0: Size 8: 1.688343e-05
+0: Size 16: 2.948185e-05
+0: Size 32: 5.434135e-05
+0: Size 64: 1.078834e-04
+0: Size 128: 2.113826e-04
+0: Size 256: 4.291847e-04
+0: Size 512: 8.999224e-04
+0: Size 1024: 1.744370e-03
+0: Size 2048: 3.484834e-03
+0: Size 4096: 6.988768e-03
+0: Size 8192: 1.387731e-02
+0: Size 16384: 2.838522e-02
+0: 
+0: Not running any matching (queue search) benchmarks.  To run these, edit the #define MATCHING to a nonzero number

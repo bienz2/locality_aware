@@ -1,0 +1,11 @@
+0: jobid: fsQaaj1
+0: 0.110s: flux-shell[1]: mpibind: 
+0: mpibind: task   0 nths 21 gpus 0 cpus 1-7,9-15,17-23
+0: mpibind: task   1 nths 21 gpus 1 cpus 25-31,33-39,41-47
+0: mpibind: task   2 nths 21 gpus 2 cpus 49-55,57-63,65-71
+0: mpibind: task   3 nths 21 gpus 3 cpus 73-79,81-87,89-95
+0: 0.102s: flux-shell[0]: mpibind: 
+0: mpibind: task   0 nths 21 gpus 0 cpus 1-7,9-15,17-23
+0: mpibind: task   1 nths 21 gpus 1 cpus 25-31,33-39,41-47
+0: mpibind: task   2 nths 21 gpus 2 cpus 49-55,57-63,65-71
+0: mpibind: task   3 nths 21 gpus 3 cpus 73-79,81-87,89-95
