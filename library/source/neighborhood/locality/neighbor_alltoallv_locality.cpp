@@ -11,7 +11,15 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-// Non-persistent, locality-aware == call dynamic version
+// Non-persistent, locality-aware neighbor alltoallv.
+// Implements the two-step (tap_comm-style) locality-aware communication:
+// data destined from local process p on this node to any process on a
+// remote node m is gathered and sent, in a single message, directly to
+// local process p on node m (the "global" step, over comm->group_comm,
+// with no separate on-node aggregation/local_S step). Each receiving
+// process then locally disaggregates the data it receives to the
+// processes on its node that actually need it (the "local_R" step, over
+// comm->local_comm).
 int neighbor_alltoallv_locality(const void* sendbuf,
                                 const int sendcounts[],
                                 const int sdispls[],
@@ -43,7 +51,7 @@ int neighbor_alltoallv_locality(const void* sendbuf,
     MPIL_Info* xinfo;
     MPIL_Info_init(&xinfo);
 
-    alltoallv_crs_personalized(send_nnz,
+    alltoallv_crs_personalized_loc(send_nnz,
                                send_size,
                                topo->destinations,
                                sendcounts,
