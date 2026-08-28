@@ -37,7 +37,12 @@ typedef struct _MPIL_Request
     int* send_indices;
     /** @brief indices of received buffer to be unpacked **/
     int* recv_indices;
-    /** @brief size of sendbuf/send_indices **/ 
+    /** @brief destination position (into recvbuf) for each entry of recv_indices;
+     * only used when recv_indices are positions into an intermediate buffer rather
+     * than a densely packed, sequentially unpacked one (e.g. collective-allgather
+     * based neighbor alltoallv) **/
+    int* recv_dest_indices;
+    /** @brief size of sendbuf/send_indices **/
     int size_sends;
     /** @brief size of recvbuf/recv_indices **/ 
     int size_recvs;

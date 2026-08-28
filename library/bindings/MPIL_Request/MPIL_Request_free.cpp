@@ -42,9 +42,21 @@ int MPIL_Request_free(MPIL_Request** request_ptr)
         request->n_msgs = 0;
     }
 
+    // tmp_sendbuf/tmp_recvbuf may have been allocated via a custom
+    // allocator (e.g. MPIL_Alloc, which uses new[]) rather than malloc;
+    // free_ftn, when set, is the matching deallocator. Falls back to
+    // plain free() for algorithms that allocate with malloc directly
+    // and never set free_ftn.
     if (request->size_sends)
     {
-        free(request->tmp_sendbuf);
+        if (request->free_ftn)
+        {
+            request->free_ftn(request->tmp_sendbuf);
+        }
+        else
+        {
+            free(request->tmp_sendbuf);
+        }
         request->tmp_sendbuf = NULL;
 
         free(request->send_indices);
@@ -54,11 +66,21 @@ int MPIL_Request_free(MPIL_Request** request_ptr)
     }
     if (request->size_recvs)
     {
-        free(request->tmp_recvbuf);
+        if (request->free_ftn)
+        {
+            request->free_ftn(request->tmp_recvbuf);
+        }
+        else
+        {
+            free(request->tmp_recvbuf);
+        }
         request->tmp_recvbuf = NULL;
 
         free(request->recv_indices);
         request->recv_indices = NULL;
+
+        free(request->recv_dest_indices);
+        request->recv_dest_indices = NULL;
 
         request->size_recvs = 0;
     }

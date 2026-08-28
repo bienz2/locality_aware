@@ -33,6 +33,8 @@ int neighbor_alltoallv_init_rma_helper(const void* sendbuf,
 
     request->sendbuf = sendbuf;
     request->recvbuf = recvbuf;
+    request->send_size = send_bytes;
+    request->recv_size = recv_bytes;
     request->n_puts = topo->outdegree;
     request->sdispls = (int*)malloc(topo->outdegree*sizeof(int));
     request->put_displs = (int*)malloc(topo->outdegree*sizeof(int));
@@ -43,6 +45,12 @@ int neighbor_alltoallv_init_rma_helper(const void* sendbuf,
     for (int i = 0; i < topo->indegree; i++)
         bytes += (recvcounts[i] * recv_bytes);
     MPIL_Request_win_init(request, recvbuf, bytes, 1, comm->global_comm);
+    // The window is created directly over recvbuf, so win_array (the buffer
+    // the window covers) is simply recvbuf -- needed by the GPU copy-back in
+    // neighbor_rma_wait/neighbor_pscw_wait. win_alloc marks it as not ours
+    // to MPI_Free_mem (it's the caller's buffer, not one we allocated).
+    request->win_array = (char*)recvbuf;
+    request->win_alloc = 1;
 
     for (int i = 0; i < topo->outdegree; i++)
     {

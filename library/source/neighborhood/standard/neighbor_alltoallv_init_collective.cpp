@@ -57,7 +57,6 @@ int neighbor_alltoallv_init_coll_a2a(const void* sendbuf,
         coll_sdispls[i+1] = coll_sdispls[i] + coll_sendcounts[i];
     }
     char* coll_sendbuf = (char*)malloc(coll_sdispls[num_procs]*sbytes);
-    int* coll_sindices = (int*)malloc(coll_sdispls[num_procs]*sizeof(int));
 
     // First, will need to repack sendbuf to tmp_sendbuf
     for (int i = 0; i < topo->outdegree; i++)
@@ -90,7 +89,6 @@ int neighbor_alltoallv_init_coll_a2a(const void* sendbuf,
         coll_rdispls[i+1] = coll_rdispls[i] + coll_recvcounts[i];
     }
     char* coll_recvbuf = (char*)malloc(coll_rdispls[num_procs]*rbytes);
-    int* coll_rindices = (int*)malloc(coll_rdispls[num_procs]*sizeof(int));
 
     // Next will call MPI_Alltoallv_init on repacked data
     ierr = MPIL_Alltoallv_init(coll_sendbuf, coll_sendcounts.data(), coll_sdispls.data(), sendtype,
@@ -120,6 +118,12 @@ int neighbor_alltoallv_init_coll_a2a(const void* sendbuf,
 
     request->tmp_sendbuf = coll_sendbuf;
     request->tmp_recvbuf = coll_recvbuf;
+
+    // MPIL_Request_free only frees tmp_sendbuf/tmp_recvbuf when
+    // size_sends/size_recvs are non-zero; without this, coll_sendbuf and
+    // coll_recvbuf leak on every request.
+    request->size_sends = coll_sdispls[num_procs];
+    request->size_recvs = coll_rdispls[num_procs];
 
     request->start_function = neighbor_a2a_start;
     request->wait_function = neighbor_a2a_wait;
@@ -161,16 +165,22 @@ int neighbor_alltoallv_init_coll_ag(const void* sendbuffer,
     for (int i = 0; i < topo->outdegree; i++)
         send_size += sendcounts[i];
 
+    // Walk each neighbor's segment using sdispls, rather than assuming
+    // sendbuf/global_sindices are packed contiguously in outdegree order
     std::vector<int> send_idx;
     std::map<long, int> sidx_to_pos;
-    for (int i = 0; i < send_size; i++)
+    for (int j = 0; j < topo->outdegree; j++)
     {
-        long idx = global_sindices[i];
-        if (sidx_to_pos.find(idx) == sidx_to_pos.end())
+        for (int k = 0; k < sendcounts[j]; k++)
         {
-            sidx_to_pos[idx] = i;
-            send_idx.push_back(i);
-            unique_sindices.push_back(idx);
+            int pos = sdispls[j] + k;
+            long idx = global_sindices[pos];
+            if (sidx_to_pos.find(idx) == sidx_to_pos.end())
+            {
+                sidx_to_pos[idx] = pos;
+                send_idx.push_back(pos);
+                unique_sindices.push_back(idx);
+            }
         }
     }
 
@@ -201,13 +211,23 @@ int neighbor_alltoallv_init_coll_ag(const void* sendbuffer,
     for (int i = 0; i < topo->indegree; i++)
         recv_size += recvcounts[i];
 
+    // Walk each neighbor's segment using rdispls, rather than assuming
+    // recvbuf/global_rindices are packed contiguously in indegree order.
+    // Each dense local recv item d gets a destination position (into
+    // recvbuf, from rdispls) and, once found below, a source position
+    // (into the gathered/tmp_recvbuf, from the Allgatherv of unique indices).
+    std::vector<int> recv_dest(recv_size);
     std::map<long, int> ridx_to_pos;
-    for (int i = 0; i < recv_size; i++)
+    int d = 0;
+    for (int j = 0; j < topo->indegree; j++)
     {
-        long idx = global_rindices[i];
-        if (ridx_to_pos.find(idx) == ridx_to_pos.end())
+        for (int k = 0; k < recvcounts[j]; k++)
         {
-            ridx_to_pos[idx] = i;
+            int pos = rdispls[j] + k;
+            long idx = global_rindices[pos];
+            recv_dest[d] = pos;
+            ridx_to_pos[idx] = d;
+            d++;
         }
     }
     std::vector<int> recv_idx(recv_size);
@@ -216,15 +236,19 @@ int neighbor_alltoallv_init_coll_ag(const void* sendbuffer,
         long idx = gathered_buf[i];
         if (ridx_to_pos.find(idx) != ridx_to_pos.end())
         {
-            int pos = ridx_to_pos[idx];
-            recv_idx[pos] = i;
-        }        
+            int dense_pos = ridx_to_pos[idx];
+            recv_idx[dense_pos] = i;
+        }
     }
 
     request->size_recvs = recv_size;
     request->recv_indices = (int*)malloc(recv_size*sizeof(int));
+    request->recv_dest_indices = (int*)malloc(recv_size*sizeof(int));
     for (int i = 0; i < request->size_recvs; i++)
+    {
         request->recv_indices[i] = recv_idx[i];
+        request->recv_dest_indices[i] = recv_dest[i];
+    }
     request->tmp_recvbuf = malloc(total_size*rbytes);
 
     request->send_size = sbytes;
@@ -395,10 +419,10 @@ int neighbor_ag_wait(MPIL_Request* request, MPI_Status* status)
                 MPI_BYTE,
                 0,
                 0,
-                &(recv_buffer[i*request->recv_size]),
-                request->recv_size, 
-                MPI_BYTE, 
-                0, 
+                &(recv_buffer[request->recv_dest_indices[i]*request->recv_size]),
+                request->recv_size,
+                MPI_BYTE,
+                0,
                 0,
                 MPI_COMM_SELF,
                 MPI_STATUS_IGNORE);

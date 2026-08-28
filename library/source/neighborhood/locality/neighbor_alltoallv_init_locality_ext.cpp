@@ -125,7 +125,15 @@ int neighbor_alltoallv_init_locality_ext_helper(const void* sendbuffer,
                   request,
                   alloc_ftn);
 
+    // tmp_sendbuf/tmp_recvbuf for the global step (on request itself) and
+    // for each local sub-request were all allocated with alloc_ftn inside
+    // init_locality/init_packing_buffers; MPIL_Request_free needs the
+    // matching deallocator on every one of them, not just the top-level
+    // request, or it mismatches allocators (e.g. new[] freed with free()).
     request->free_ftn = free_ftn;
+    request->local_L_request->free_ftn = free_ftn;
+    request->local_S_request->free_ftn = free_ftn;
+    request->local_R_request->free_ftn = free_ftn;
 
     *request_ptr = request;
 
