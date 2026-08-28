@@ -201,22 +201,24 @@ int neighbor_alltoallv_init_coll_ag(const void* sendbuffer,
     for (int i = 0; i < topo->indegree; i++)
         recv_size += recvcounts[i];
 
-    std::map<long, std::vector<int>> ridx_to_pos;
+    std::map<long, int> ridx_to_pos;
     for (int i = 0; i < recv_size; i++)
     {
         long idx = global_rindices[i];
-        ridx_to_pos[idx].push_back(i);
+        if (ridx_to_pos.find(idx) == ridx_to_pos.end())
+        {
+            ridx_to_pos[idx] = i;
+        }
     }
     std::vector<int> recv_idx(recv_size);
     for (int i = 0; i < total_size; i++)
     {
         long idx = gathered_buf[i];
-        auto it = ridx_to_pos.find(idx);
-        if (it != ridx_to_pos.end())
+        if (ridx_to_pos.find(idx) != ridx_to_pos.end())
         {
-            for (int pos : it->second)
-                recv_idx[pos] = i;
-        }
+            int pos = ridx_to_pos[idx];
+            recv_idx[pos] = i;
+        }        
     }
 
     request->size_recvs = recv_size;

@@ -36,10 +36,6 @@ int allreduce_recursive_doubling(const void* sendbuf,
         MPI_Sendrecv(sendbuf, count, datatype, rank, tag,
                 tmp_recvbuf, count, datatype, rank, tag, comm->global_comm,
                 MPI_STATUS_IGNORE);
-    else
-        MPI_Sendrecv(recvbuf, count, datatype, rank, tag,
-                tmp_recvbuf, count, datatype, rank, tag, comm->global_comm,
-                MPI_STATUS_IGNORE);
 
 
     if (rank >= log2_num_procs)
