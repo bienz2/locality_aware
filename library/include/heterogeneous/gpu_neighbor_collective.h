@@ -4,6 +4,7 @@
 #include "gpu_utils.h"
 #include "persistent/MPIL_Request.h"
 #include "locality_aware.h"
+#include "neighborhood/neighborhood_init.h"
 
 /************************************************
  ***** GPU-Aware NeighborCollective Wrapper *****

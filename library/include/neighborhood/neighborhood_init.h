@@ -20,6 +20,11 @@ int neighbor_rma_wait(MPIL_Request* request, MPI_Status* status);
 int neighbor_pscw_start(MPIL_Request* request);
 int neighbor_pscw_wait(MPIL_Request* request, MPI_Status* status);
 
+#if defined(GPU)
+int neighbor_start_gpu(MPIL_Request* request);
+int neighbor_wait_gpu(MPIL_Request* request, MPI_Status* status);
+#endif
+
 
 
 /** @brief Function pointer to persistent neighbor alltoallv implemenation

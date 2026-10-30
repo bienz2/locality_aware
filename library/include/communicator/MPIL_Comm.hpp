@@ -189,6 +189,7 @@ int initialize_topo_communicator(MPIL_Comm* xcomm, int ppn_override = 0)
         }
         else
         { /* Split global comm into local (per node) communicators */
+#ifdef NUMA_H
             MPI_Comm node_comm;
             MPI_Comm_split_type(xcomm->global_comm,
                                 MPI_COMM_TYPE_SHARED,
@@ -196,14 +197,30 @@ int initialize_topo_communicator(MPIL_Comm* xcomm, int ppn_override = 0)
                                 MPI_INFO_NULL,
                                 &node_comm);
 
-#ifdef NUMA_H
-            int numa_node = numa_node_of_cpu(sched_getcpu());
+            /* Fall back to one NUMA domain if libnuma or sched_getcpu fails */
+            int numa_node = 0;
+            if (numa_available() != -1)
+            {
+                int cpu = sched_getcpu();
+                if (cpu >= 0)
+                {
+                    numa_node = numa_node_of_cpu(cpu);
+                }
+                if (numa_node < 0)
+                {
+                    numa_node = 0;
+                }
+            }
             int node_rank;
             MPI_Comm_rank(node_comm, &node_rank);
             MPI_Comm_split(node_comm, numa_node, node_rank, xcomm->local_comm);
             MPI_Comm_free(&node_comm);
 #else
-            xcomm->local_comm = &node_comm;
+            MPI_Comm_split_type(xcomm->global_comm,
+                                MPI_COMM_TYPE_SHARED,
+                                rank,
+                                MPI_INFO_NULL,
+                                xcomm->local_comm);
 #endif
         }
         /* Cache new local communicator into map for reuse */
