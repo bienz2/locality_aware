@@ -87,7 +87,7 @@ if (NUMA_H)
         message(FATAL_ERROR "NUMA support was requested, but numa library was not found")
     endif()
 
-    target_link_directories(locality_aware PRIVATE ${NUMA_INCLUDE_DIR})
+    target_include_directories(locality_aware PUBLIC ${NUMA_INCLUDE_DIR}) 
     target_link_libraries(locality_aware PUBLIC ${NUMA_LIBRARY})
     add_definitions(-DNUMA_H)
 endif()

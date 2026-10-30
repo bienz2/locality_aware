@@ -35,13 +35,11 @@ int MPIL_Neighbor_alltoallv_topo(const void* sendbuf,
                     neighbor_alltoallv_standard_helper,
                     sendbuf, sendcounts, sdispls, sendtype,
                     recvbuf, recvcounts, rdispls, recvtype, topo, comm);
-            break;
         case NEIGHBOR_ALLTOALLV_GPU_LOCALITY:
             return gpu_aware_neighbor_alltoallv(
                     neighbor_alltoallv_locality_helper,
                     sendbuf, sendcounts, sdispls, sendtype,
                     recvbuf, recvcounts, rdispls, recvtype, topo, comm);
-            break;
 #endif
         case NEIGHBOR_ALLTOALLV_CTC_STANDARD:
             method = neighbor_alltoallv_standard;
