@@ -23,7 +23,6 @@ int MPIL_Neighbor_alltoallv_topo(const void* sendbuf,
 {
     neighbor_alltoallv_ftn method;
 #if defined(GPU)
-    bool gpu_aware   = false;
     bool copy_to_cpu = false;
 #endif
 
@@ -32,12 +31,16 @@ int MPIL_Neighbor_alltoallv_topo(const void* sendbuf,
 #if defined(GPU)
 #if defined(GPU_AWARE)
         case NEIGHBOR_ALLTOALLV_GPU_STANDARD:
-            method = neighbor_alltoallv_standard;
-            gpu_aware = true;
+            return gpu_aware_neighbor_alltoallv(
+                    neighbor_alltoallv_standard_helper,
+                    sendbuf, sendcounts, sdispls, sendtype,
+                    recvbuf, recvcounts, rdispls, recvtype, topo, comm);
             break;
         case NEIGHBOR_ALLTOALLV_GPU_LOCALITY:
-            method = neighbor_alltoallv_locality;
-            gpu_aware = true;
+            return gpu_aware_neighbor_alltoallv(
+                    neighbor_alltoallv_locality_helper,
+                    sendbuf, sendcounts, sdispls, sendtype,
+                    recvbuf, recvcounts, rdispls, recvtype, topo, comm);
             break;
 #endif
         case NEIGHBOR_ALLTOALLV_CTC_STANDARD:
@@ -64,22 +67,6 @@ int MPIL_Neighbor_alltoallv_topo(const void* sendbuf,
     }
 
 #if defined(GPU)
-#if defined(GPU_AWARE)
-    if (gpu_aware)
-    {
-        return gpu_aware_neighbor_collective(method,
-                sendbuf,
-                sendcounts,
-                sdispls,
-                sendtype,
-                recvbuf,
-                recvcounts,
-                rdispls,
-                recvtype,
-                topo,
-                comm);
-    }
-#endif
     if (copy_to_cpu)
     {
         return copy_to_cpu_neighbor_alltoallv(method,

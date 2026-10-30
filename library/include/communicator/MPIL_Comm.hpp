@@ -5,6 +5,11 @@
 
 #include "global_comms.hpp"
 
+#ifdef NUMA_H
+#include <sched.h>
+#include <numa.h>
+#endif
+
 /** @brief Struct capable of maintaining multiple request and communicators for library
  * operations.
  *  @details
@@ -184,11 +189,22 @@ int initialize_topo_communicator(MPIL_Comm* xcomm, int ppn_override = 0)
         }
         else
         { /* Split global comm into local (per node) communicators */
+            MPI_Comm node_comm;
             MPI_Comm_split_type(xcomm->global_comm,
                                 MPI_COMM_TYPE_SHARED,
                                 rank,
                                 MPI_INFO_NULL,
-                                xcomm->local_comm);
+                                &node_comm);
+
+#ifdef NUMA_H
+            int numa_node = numa_node_of_cpu(sched_getcpu());
+            int node_rank;
+            MPI_Comm_rank(node_comm, &node_rank);
+            MPI_Comm_split(node_comm, numa_node, node_rank, xcomm->local_comm);
+            MPI_Comm_free(&node_comm);
+#else
+            xcomm->local_comm = &node_comm;
+#endif
         }
         /* Cache new local communicator into map for reuse */
         Communicator::cached_local_comms.push_back(

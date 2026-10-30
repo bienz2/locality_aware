@@ -74,7 +74,7 @@ int MPIL_Neighbor_alltoallv_init_topo(const void* sendbuf,
 #if defined(GPU_AWARE)
     if (gpu_aware)
     {
-        return gpu_aware_neighbor_collective(method,
+        return gpu_aware_neighbor_alltoallv_init(method,
                 sendbuf,
                 sendcounts,
                 sdispls,

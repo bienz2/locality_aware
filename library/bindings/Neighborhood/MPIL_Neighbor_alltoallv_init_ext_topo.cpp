@@ -30,7 +30,7 @@ int MPIL_Neighbor_alltoallv_init_ext_topo(const void* sendbuf,
 #if defined(GPU)
 #if defined(GPU_AWARE)
         case NEIGHBOR_ALLTOALLV_INIT_GPU_STANDARD:
-            return gpu_aware_neighbor_collective(neighbor_alltoallv_init_standard,
+            return gpu_aware_neighbor_alltoallv_init(neighbor_alltoallv_init_standard,
                                                     sendbuf,
                                                     sendcounts,
                                                     sdispls,
@@ -44,7 +44,7 @@ int MPIL_Neighbor_alltoallv_init_ext_topo(const void* sendbuf,
                                                     info,
                                                     request_ptr);
         case NEIGHBOR_ALLTOALLV_INIT_GPU_LOCALITY:
-            return gpu_aware_neighbor_collective(neighbor_alltoallv_init_locality_ext,
+            return gpu_aware_neighbor_alltoallv_init_ext(neighbor_alltoallv_init_locality_ext,
                                                         sendbuf,
                                                         sendcounts,
                                                         sdispls,

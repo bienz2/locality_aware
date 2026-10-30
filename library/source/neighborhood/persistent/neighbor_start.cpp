@@ -57,11 +57,9 @@ int neighbor_start(MPIL_Request* request)
             for (int i = 0; i < request->size_sends; i++)
             {
                 idx = request->send_indices[i];
-                MPI_Sendrecv((char*)(request->sendbuf) + (idx*request->send_size),
-                        request->send_size, MPI_BYTE, 0, 0, 
-                        (char*)(request->tmp_sendbuf) + (i*request->send_size),
-                        request->send_size, MPI_BYTE, 0, 0, 
-                        MPI_COMM_SELF, MPI_STATUS_IGNORE);
+                memcpy((char*)(request->tmp_sendbuf) + (i*request->send_size), 
+                        (char*)(request->sendbuf) + (idx*request->send_size),
+                        request->send_size);
             }
         }
         ierr += MPI_Startall(request->n_msgs, request->requests);
@@ -69,3 +67,50 @@ int neighbor_start(MPIL_Request* request)
 
     return ierr;
 }
+
+#if defined(GPU)
+int neighbor_start_gpu(MPIL_Request* request)
+{
+    if (request == NULL)
+    {
+        return 0;
+    }
+
+    int ierr = 0;
+    int idx;
+
+    // Local L sends sendbuf
+    if (request->local_L_request != NULL)
+    {
+        MPIL_Start(request->local_L_request);
+    }
+
+    // Local S sends sendbuf
+    if (request->local_S_request != NULL)
+    {
+        MPIL_Start(request->local_S_request);
+        MPIL_Wait(request->local_S_request, MPI_STATUS_IGNORE);
+    }
+
+    // Global sends buffer in locality, sendbuf in standard
+    if (request->n_msgs)
+    {
+        if (request->size_sends && request->send_indices)
+        {
+            for (int i = 0; i < request->size_sends; i++)
+            {
+                idx = request->send_indices[i];
+                int gpu_error = gpuMemcpyAsync((char*)(request->tmp_sendbuf) + (i*request->send_size),
+                        (char*)(request->sendbuf) + (idx*request->send_size),
+                        request->send_size, gpuMemcpyDeviceToDevice, 0);
+                gpu_check(gpu_error);
+                gpu_error = gpuStreamSynchronize(0);
+                gpu_check(gpu_error);
+            }
+        }
+        ierr += MPI_Startall(request->n_msgs, request->requests);
+    }
+
+    return ierr;
+}
+#endif

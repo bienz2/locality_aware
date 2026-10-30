@@ -9,13 +9,74 @@
  ***** GPU-Aware NeighborCollective Wrapper *****
  ***********************************************/
 #if defined(GPU_AWARE)
-template <typename Ftn, typename... Args>
-int gpu_aware_neighbor_collective(Ftn f, Args&&... args)
+template <typename Ftn>
+int gpu_aware_neighbor_alltoallv(Ftn f,
+                                const void* sendbuf,
+                                const int sendcounts[],
+                                const int sdispls[],
+                                MPI_Datatype sendtype,
+                                void* recvbuf,
+                                const int recvcounts[],
+                                const int rdispls[],
+                                MPI_Datatype recvtype,
+                                MPIL_Topo* topo,
+                                MPIL_Comm* comm)
 {
-    return f(std::forward<Args>(args)...);
+    int ierr = f(sendbuf, sendcounts, sdispls, sendtype, 
+                recvbuf, recvcounts, rdispls, recvtype, topo, comm, true);
+    return ierr;
+}
+
+template <typename Ftn>
+int gpu_aware_neighbor_alltoallv_init(Ftn f,
+                                const void* sendbuf,
+                                const int sendcounts[],
+                                const int sdispls[],
+                                MPI_Datatype sendtype,
+                                void* recvbuf,
+                                const int recvcounts[],
+                                const int rdispls[],
+                                MPI_Datatype recvtype,
+                                MPIL_Topo* topo,
+                                MPIL_Comm* comm,
+                                MPIL_Info* info,
+                                MPIL_Request** req_ptr)
+{
+    int ierr = f(sendbuf, sendcounts, sdispls, sendtype,
+                recvbuf, recvcounts, rdispls, recvtype, topo, comm,
+                info, req_ptr);
+    MPIL_Request* req = *req_ptr;
+    req->start_function = neighbor_start_gpu;
+    req->wait_function = neighbor_wait_gpu;
+    return ierr;
+}
+
+template <typename Ftn>
+int gpu_aware_neighbor_alltoallv_init_ext(Ftn f,
+                                const void* sendbuf,
+                                const int sendcounts[],
+                                const int sdispls[],
+                                const long global_sindices[],
+                                MPI_Datatype sendtype,
+                                void* recvbuf,
+                                const int recvcounts[],
+                                const int rdispls[],
+                                const long global_rindices[],
+                                MPI_Datatype recvtype,
+                                MPIL_Topo* topo,
+                                MPIL_Comm* comm,
+                                MPIL_Info* info,
+                                MPIL_Request** req_ptr)
+{
+    int ierr = f(sendbuf, sendcounts, sdispls, global_sindices, sendtype,
+                recvbuf, recvcounts, rdispls, global_rindices, recvtype, 
+                topo, comm, info, req_ptr);
+    MPIL_Request* req = *req_ptr;
+    req->start_function = neighbor_start_gpu;
+    req->wait_function = neighbor_wait_gpu;
+    return ierr;
 }
 #endif
-
 
 /***************************************************
  ***** Copy-to-CPU Neighbor Collective Wrappers ****

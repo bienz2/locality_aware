@@ -60,6 +60,31 @@ int neighbor_alltoallv_coll_a2a(const void* sendbuf,
                                 MPIL_Comm* comm);
 
 
+int neighbor_alltoallv_standard_helper(const void* sendbuf,
+                                const int sendcounts[],
+                                const int sdispls[],
+                                MPI_Datatype sendtype,
+                                void* recvbuf,
+                                const int recvcounts[],
+                                const int rdispls[],
+                                MPI_Datatype recvtype,
+                                MPIL_Topo* topo,
+                                MPIL_Comm* comm,
+                                bool gpu);
+int neighbor_alltoallv_locality_helper(const void* sendbuf,
+                                const int sendcounts[],
+                                const int sdispls[],
+                                MPI_Datatype sendtype,
+                                void* recvbuf,
+                                const int recvcounts[],
+                                const int rdispls[],
+                                MPI_Datatype recvtype,
+                                MPIL_Topo* topo,
+                                MPIL_Comm* comm,
+                                bool gpu);
+
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -15,6 +15,22 @@ int neighbor_alltoallv_standard(const void* sendbuf,
                                 MPIL_Topo* topo,
                                 MPIL_Comm* comm)
 {
+    return neighbor_alltoallv_standard_helper(sendbuf, sendcounts, sdispls, sendtype,
+                recvbuf, recvcounts, rdispls, recvtype, topo, comm, false);
+}
+
+int neighbor_alltoallv_standard_helper(const void* sendbuf,
+                                const int sendcounts[],
+                                const int sdispls[],
+                                MPI_Datatype sendtype,
+                                void* recvbuf,
+                                const int recvcounts[],
+                                const int rdispls[],
+                                MPI_Datatype recvtype,
+                                MPIL_Topo* topo,
+                                MPIL_Comm* comm,
+                                bool gpu)
+{
     int tag;
     MPIL_Comm_tag(comm, &tag);
 

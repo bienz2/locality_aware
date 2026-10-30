@@ -6,6 +6,7 @@
 #include "locality_aware.h"
 #include "neighborhood/MPIL_Topo.h"
 #include "neighborhood/alltoall_crs.h"
+#include "neighborhood/neighbor.h"
 
 // Declarations of C++ methods
 #ifdef __cplusplus
@@ -22,6 +23,22 @@ int neighbor_alltoallv_locality(const void* sendbuf,
                                 MPI_Datatype recvtype,
                                 MPIL_Topo* topo,
                                 MPIL_Comm* comm)
+{
+    return neighbor_alltoallv_locality_helper(sendbuf, sendcounts, sdispls, sendtype,
+                recvbuf, recvcounts, rdispls, recvtype, topo, comm, false);
+}
+
+int neighbor_alltoallv_locality_helper(const void* sendbuf,
+                                const int sendcounts[],
+                                const int sdispls[],
+                                MPI_Datatype sendtype,
+                                void* recvbuf,
+                                const int recvcounts[],
+                                const int rdispls[],
+                                MPI_Datatype recvtype,
+                                MPIL_Topo* topo,
+                                MPIL_Comm* comm,
+                                bool gpu)
 {
     int num_procs;
     MPI_Comm_size(comm->global_comm, &num_procs);

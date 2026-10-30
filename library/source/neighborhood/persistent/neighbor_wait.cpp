@@ -14,6 +14,7 @@
 // 2. Start and wait for local_R
 // 3. Wait for local_L
 // TODO : Currently ignores the status!
+
 int neighbor_wait(MPIL_Request* request, MPI_Status* status)
 {
     if (request == NULL)
@@ -35,12 +36,9 @@ int neighbor_wait(MPIL_Request* request, MPI_Status* status)
             for (int i = 0; i < request->size_recvs; i++)
             {
                 idx = request->recv_indices[i];
-
-                MPI_Sendrecv((char*)(request->tmp_recvbuf) + (i*request->recv_size),
-                        request->recv_size, MPI_BYTE, 0, 0, 
-                        (char*)(request->recvbuf) + (idx*request->recv_size),
-                        request->recv_size, MPI_BYTE, 0, 0,
-                        MPI_COMM_SELF, MPI_STATUS_IGNORE);
+                memcpy((char*)(request->recvbuf) + (idx*request->recv_size),
+                        (char*)(request->tmp_recvbuf) + (i*request->recv_size),
+                        request->recv_size);
             }
         }
     }
@@ -76,3 +74,53 @@ int neighbor_wait(MPIL_Request* request, MPI_Status* status)
 
     return ierr;
 }
+
+
+#if defined(GPU)
+int neighbor_wait_gpu(MPIL_Request* request, MPI_Status* status)
+{
+    if (request == NULL)
+    {
+        return 0;
+    }
+
+    int ierr = 0;
+    int idx;
+
+    // Global waits for recvs
+    if (request->n_msgs)
+    {
+        ierr += MPI_Waitall(
+            request->n_msgs, request->requests, MPI_STATUSES_IGNORE);
+
+        if (request->size_recvs && request->recv_indices)
+        {
+            for (int i = 0; i < request->size_recvs; i++)
+            {
+                idx = request->recv_indices[i];
+                int gpu_error = gpuMemcpyAsync((char*)(request->recvbuf) + (idx*request->recv_size),
+                        (char*)(request->tmp_recvbuf) + (i*request->recv_size),
+                        request->recv_size, gpuMemcpyDeviceToDevice, 0);
+                gpu_check(gpu_error);
+                gpu_error = gpuStreamSynchronize(0);
+                gpu_check(gpu_error);
+            }
+        }
+    }
+
+    // Wait for local_R recvs
+    if (request->local_R_request)
+    {
+        MPIL_Start(request->local_R_request);
+        MPIL_Wait(request->local_R_request, MPI_STATUS_IGNORE);
+    }
+
+    // Wait for local_L recvs
+    if (request->local_L_request)
+    {
+        MPIL_Wait(request->local_L_request, MPI_STATUS_IGNORE);
+     }
+
+    return ierr;
+}
+#endif
